@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.enterprise.backend.dto.LoginRequestDto;
 import com.enterprise.backend.dto.LoginResponseDto;
+import com.enterprise.backend.security.JwtService;
 
 @Service
 @RequiredArgsConstructor
@@ -15,6 +16,7 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     public void registerUser(RegisterUserDto dto) {
         
@@ -42,10 +44,12 @@ public class AuthService {
         throw new RuntimeException("Invalid Password");
     }
 
-    return new LoginResponseDto(
-            "TEMP_TOKEN",
-            user.getEmail(),
-            user.getRole()
-    );
+   String token = jwtService.generateToken(user.getEmail());
+
+return new LoginResponseDto(
+        token,
+        user.getEmail(),
+        user.getRole()
+);
 }
 }
