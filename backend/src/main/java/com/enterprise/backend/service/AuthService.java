@@ -6,6 +6,9 @@ import com.enterprise.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import com.enterprise.backend.dto.LoginRequestDto;
+import com.enterprise.backend.dto.LoginResponseDto;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -30,4 +33,19 @@ public class AuthService {
 
         userRepository.save(user);
     }
+    public LoginResponseDto login(LoginRequestDto dto) {
+
+    User user = userRepository.findByEmail(dto.getEmail())
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+    if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
+        throw new RuntimeException("Invalid Password");
+    }
+
+    return new LoginResponseDto(
+            "TEMP_TOKEN",
+            user.getEmail(),
+            user.getRole()
+    );
+}
 }
