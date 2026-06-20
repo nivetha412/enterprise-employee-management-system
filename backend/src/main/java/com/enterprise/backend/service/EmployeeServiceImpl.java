@@ -63,4 +63,68 @@ public class EmployeeServiceImpl implements EmployeeService {
                         .build())
                 .toList();
     }
+
+      @Override
+public EmployeeResponseDto getEmployeeById(Long id) {
+
+    Employee employee = employeeRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Employee Not Found"));
+
+    return EmployeeResponseDto.builder()
+            .id(employee.getId())
+            .employeeCode(employee.getEmployeeCode())
+            .firstName(employee.getFirstName())
+            .lastName(employee.getLastName())
+            .email(employee.getEmail())
+            .designation(employee.getDesignation())
+            .department(employee.getDepartment())
+            .active(employee.getActive())
+            .build();
+}
+
+
+@Override
+public EmployeeResponseDto updateEmployee(
+        Long id,
+        EmployeeRequestDto dto) {
+
+    Employee employee = employeeRepository.findById(id)
+            .orElseThrow(() ->
+                    new RuntimeException("Employee Not Found"));
+
+    employee.setEmployeeCode(dto.getEmployeeCode());
+    employee.setFirstName(dto.getFirstName());
+    employee.setLastName(dto.getLastName());
+    employee.setEmail(dto.getEmail());
+    employee.setPhone(dto.getPhone());
+    employee.setGender(dto.getGender());
+    employee.setDesignation(dto.getDesignation());
+    employee.setSalary(dto.getSalary());
+    employee.setDepartment(dto.getDepartment());
+    employee.setEmploymentType(dto.getEmploymentType());
+
+    Employee updatedEmployee =
+            employeeRepository.save(employee);
+
+    return EmployeeResponseDto.builder()
+            .id(updatedEmployee.getId())
+            .employeeCode(updatedEmployee.getEmployeeCode())
+            .firstName(updatedEmployee.getFirstName())
+            .lastName(updatedEmployee.getLastName())
+            .email(updatedEmployee.getEmail())
+            .designation(updatedEmployee.getDesignation())
+            .department(updatedEmployee.getDepartment())
+            .active(updatedEmployee.getActive())
+            .build();
+}
+
+  @Override
+public void deleteEmployee(Long id) {
+
+    Employee employee = employeeRepository.findById(id)
+            .orElseThrow(() ->
+                    new RuntimeException("Employee Not Found"));
+
+    employeeRepository.delete(employee);
+}
 }
