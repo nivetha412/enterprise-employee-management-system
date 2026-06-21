@@ -27,8 +27,9 @@ public class SecurityConfig {
         .requestMatchers("/api/auth/**").permitAll()
         .requestMatchers("/api/employees/**").permitAll()
         .requestMatchers("/api/departments/**").permitAll()
-        .anyRequest().authenticated()
         .requestMatchers("/api/attendance/**").permitAll()
+        .anyRequest().authenticated()
+        
 )
                 .httpBasic(Customizer.withDefaults())
                 .formLogin(form -> form.disable());
