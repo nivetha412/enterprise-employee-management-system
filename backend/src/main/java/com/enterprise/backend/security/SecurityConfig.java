@@ -8,6 +8,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+
 @Configuration
 public class SecurityConfig {
 
@@ -15,6 +20,28 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+   @Bean
+public CorsConfigurationSource corsConfigurationSource() {
+
+    CorsConfiguration configuration =
+            new CorsConfiguration();
+
+    configuration.addAllowedOrigin(
+            "http://localhost:5173");
+
+    configuration.addAllowedHeader("*");
+
+    configuration.addAllowedMethod("*");
+
+    UrlBasedCorsConfigurationSource source =
+            new UrlBasedCorsConfigurationSource();
+
+    source.registerCorsConfiguration(
+            "/**",
+            configuration);
+
+    return source;
+}
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -22,6 +49,7 @@ public class SecurityConfig {
         System.out.println("=== CUSTOM SECURITY CONFIG LOADED ===");
 
         http
+        .cors(cors -> {})
                 .csrf(csrf -> csrf.disable())
                .authorizeHttpRequests(auth -> auth
         .requestMatchers("/api/auth/**").permitAll()
