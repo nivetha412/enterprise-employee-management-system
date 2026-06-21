@@ -22,7 +22,7 @@ function Login() {
       console.log(response.data);
 
       alert("Login Successful");
-navigate("/dashboard");
+      navigate("/dashboard");
 
 
     } catch (error) {
