@@ -21,8 +21,24 @@ function Login() {
 
       console.log(response.data);
 
-      alert("Login Successful");
-      navigate("/dashboard");
+      localStorage.setItem(
+  "token",
+  response.data.token
+);
+
+localStorage.setItem(
+  "email",
+  response.data.email
+);
+
+localStorage.setItem(
+  "role",
+  response.data.role
+);
+
+alert("Login Successful");
+
+navigate("/dashboard");
 
 
     } catch (error) {
