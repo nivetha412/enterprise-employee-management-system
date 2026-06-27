@@ -57,7 +57,9 @@ public CorsConfigurationSource corsConfigurationSource() {
         .requestMatchers("/api/departments/**").permitAll()
         .requestMatchers("/api/attendance/**").permitAll()
            .requestMatchers("/api/leave/**").permitAll()
-        .anyRequest().authenticated()
+        .requestMatchers("/api/reports/**").permitAll()
+        
+           .anyRequest().authenticated()
         
 )
                 .httpBasic(Customizer.withDefaults())

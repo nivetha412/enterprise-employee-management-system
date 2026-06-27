@@ -3,25 +3,20 @@ import Sidebar from "../components/Sidebar";
 
 function MainLayout({ children }) {
   return (
-    <div>
-
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <Navbar />
-
-      <div style={{ display: "flex" }}>
-
+      <div style={{ display: "flex", flex: 1 }}>
         <Sidebar />
-
-        <div
-          style={{
-            padding: "20px",
-            width: "100%"
-          }}
-        >
+        <main style={{
+          flex: 1,
+          padding: "28px 32px",
+          background: "var(--bg-main)",
+          minHeight: "calc(100vh - var(--navbar-height))",
+          overflowX: "hidden"
+        }}>
           {children}
-        </div>
-
+        </main>
       </div>
-
     </div>
   );
 }

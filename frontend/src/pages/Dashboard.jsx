@@ -1,258 +1,68 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
 import MainLayout from "../layouts/MainLayout";
+import DashboardCard from "../components/DashboardCard";
+import QuickActions from "../components/QuickActions";
+import RecentActivities from "../components/RecentActivities";
+import DashboardCharts from "../components/DashboardCharts";
+
+const cards = [
+  { key: "totalEmployees",   title: "Total Employees",   color: "#4f46e5", icon: "👥" },
+  { key: "totalDepartments", title: "Departments",        color: "#7c3aed", icon: "🏢" },
+  { key: "activeEmployees",  title: "Active",             color: "#059669", icon: "✅" },
+  { key: "inactiveEmployees",title: "Inactive",           color: "#dc2626", icon: "❌" },
+  { key: "presentToday",     title: "Present Today",      color: "#0891b2", icon: "🟢" },
+  { key: "absentToday",      title: "Absent Today",       color: "#ea580c", icon: "🔴" },
+  { key: "lateToday",        title: "Late Arrivals",      color: "#d97706", icon: "⏰" },
+];
 
 function Dashboard() {
-
-  const [employeeCount, setEmployeeCount] = useState(0);
-  const [departmentCount, setDepartmentCount] = useState(0);
-
-  const [presentCount, setPresentCount] = useState(0);
-  const [absentCount, setAbsentCount] = useState(0);
-  const [lateCount, setLateCount] = useState(0);
+  const [dashboard, setDashboard] = useState(null);
 
   useEffect(() => {
     fetchDashboardData();
   }, []);
 
   const fetchDashboardData = async () => {
-
     try {
-
-      const employeesResponse =
-        await api.get("/employees");
-
-      const departmentsResponse =
-        await api.get("/departments");
-
-      const attendanceResponse =
-        await api.get("/attendance");
-
-      const attendanceData =
-        attendanceResponse.data;
-
-      setEmployeeCount(
-        employeesResponse.data.length
-      );
-
-      setDepartmentCount(
-        departmentsResponse.data.length
-      );
-
-      setPresentCount(
-        attendanceData.filter(
-          item =>
-            item.status === "PRESENT"
-        ).length
-      );
-
-      setAbsentCount(
-        attendanceData.filter(
-          item =>
-            item.status === "ABSENT"
-        ).length
-      );
-
-      setLateCount(
-        attendanceData.filter(
-          item =>
-            item.lateArrival === true
-        ).length
-      );
-
+      const response = await api.get("/reports/dashboard");
+      setDashboard(response.data);
     } catch (error) {
-
       console.error(error);
-
     }
-
   };
 
-  const totalAttendance =
-    presentCount + absentCount;
-
-  const attendancePercentage =
-    totalAttendance > 0
-      ? (
-          (presentCount /
-            totalAttendance) *
-          100
-        ).toFixed(1)
-      : 0;
-
-  const DashboardCard = ({
-    title,
-    value,
-    color
-  }) => (
-
-    <div
-      style={{
-        background: "#ffffff",
-        borderRadius: "15px",
-        padding: "25px",
-        boxShadow:
-          "0px 4px 15px rgba(0,0,0,0.08)",
-        borderLeft:
-          `6px solid ${color}`
-      }}
-    >
-
-      <h3
-        style={{
-          margin: 0,
-          color: "#666"
-        }}
-      >
-        {title}
-      </h3>
-
-      <h1
-        style={{
-          marginTop: "15px",
-          marginBottom: 0,
-          color: color
-        }}
-      >
-        {value}
-      </h1>
-
-    </div>
-
-  );
+  const email = localStorage.getItem("email");
 
   return (
-
     <MainLayout>
-
-      <div>
-
-        <h1>
-          Enterprise Employee
-          Management System
+      {/* Header */}
+      <div style={{ marginBottom: "24px" }}>
+        <h1 style={{ fontSize: "22px", fontWeight: 700, color: "var(--text-primary)", marginBottom: "4px" }}>
+          Dashboard
         </h1>
-
-        <p
-          style={{
-            color: "#666"
-          }}
-        >
-          Welcome Back 👋
+        <p style={{ color: "var(--text-secondary)", fontSize: "14px" }}>
+          Welcome back{email ? `, ${email}` : ""} 👋 — Here's what's happening today.
         </p>
-
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns:
-            "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "20px",
-          marginTop: "25px"
-        }}
-      >
-
-        <DashboardCard
-          title="Total Employees"
-          value={employeeCount}
-          color="#2563eb"
-        />
-
-        <DashboardCard
-          title="Departments"
-          value={departmentCount}
-          color="#7c3aed"
-        />
-
-        <DashboardCard
-          title="Present Today"
-          value={presentCount}
-          color="#16a34a"
-        />
-
-        <DashboardCard
-          title="Absent Today"
-          value={absentCount}
-          color="#dc2626"
-        />
-
-        <DashboardCard
-          title="Late Arrivals"
-          value={lateCount}
-          color="#ea580c"
-        />
-
+      {/* Stat Cards */}
+      <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "0" }}>
+        {cards.map(({ key, title, color, icon }) => (
+          <DashboardCard
+            key={key}
+            title={title}
+            value={dashboard?.[key]}
+            color={color}
+            icon={icon}
+          />
+        ))}
       </div>
 
-      <div
-        style={{
-          marginTop: "35px",
-          background: "#ffffff",
-          borderRadius: "15px",
-          padding: "25px",
-          boxShadow:
-            "0px 4px 15px rgba(0,0,0,0.08)"
-        }}
-      >
-
-        <h2>
-          Company Analytics
-        </h2>
-
-        <hr />
-
-        <p>
-          Attendance Rate :
-          <strong>
-            {" "}
-            {attendancePercentage}%
-          </strong>
-        </p>
-
-        <p>
-          Total Employees :
-          <strong>
-            {" "}
-            {employeeCount}
-          </strong>
-        </p>
-
-        <p>
-          Total Departments :
-          <strong>
-            {" "}
-            {departmentCount}
-          </strong>
-        </p>
-
-        <p>
-          Present Employees :
-          <strong>
-            {" "}
-            {presentCount}
-          </strong>
-        </p>
-
-        <p>
-          Absent Employees :
-          <strong>
-            {" "}
-            {absentCount}
-          </strong>
-        </p>
-
-        <p>
-          Late Arrivals :
-          <strong>
-            {" "}
-            {lateCount}
-          </strong>
-        </p>
-
-      </div>
-
+      <QuickActions />
+      <RecentActivities />
+      <DashboardCharts />
     </MainLayout>
-
   );
 }
 

@@ -6,6 +6,7 @@ import com.enterprise.backend.entity.Employee;
 import com.enterprise.backend.repository.EmployeeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -16,7 +17,12 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final EmployeeRepository employeeRepository;
 
     @Override
+    @Transactional
     public EmployeeResponseDto createEmployee(EmployeeRequestDto dto) {
+
+        if (employeeRepository.existsByEmployeeCode(dto.getEmployeeCode())) {
+            throw new RuntimeException("Employee code '" + dto.getEmployeeCode() + "' already exists");
+        }
 
         Employee employee = Employee.builder()
                 .employeeCode(dto.getEmployeeCode())
@@ -32,99 +38,73 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .active(true)
                 .build();
 
-        Employee savedEmployee = employeeRepository.save(employee);
-
-        return EmployeeResponseDto.builder()
-                .id(savedEmployee.getId())
-                .employeeCode(savedEmployee.getEmployeeCode())
-                .firstName(savedEmployee.getFirstName())
-                .lastName(savedEmployee.getLastName())
-                .email(savedEmployee.getEmail())
-                .designation(savedEmployee.getDesignation())
-                .department(savedEmployee.getDepartment())
-                .active(savedEmployee.getActive())
-                .build();
+        return toResponseDto(employeeRepository.save(employee));
     }
 
     @Override
     public List<EmployeeResponseDto> getAllEmployees() {
-
         return employeeRepository.findAll()
                 .stream()
-                .map(employee -> EmployeeResponseDto.builder()
-                        .id(employee.getId())
-                        .employeeCode(employee.getEmployeeCode())
-                        .firstName(employee.getFirstName())
-                        .lastName(employee.getLastName())
-                        .email(employee.getEmail())
-                        .designation(employee.getDesignation())
-                        .department(employee.getDepartment())
-                        .active(employee.getActive())
-                        .build())
+                .map(this::toResponseDto)
                 .toList();
     }
 
-      @Override
-public EmployeeResponseDto getEmployeeById(Long id) {
+    @Override
+    public EmployeeResponseDto getEmployeeById(Long id) {
+        return toResponseDto(
+                employeeRepository.findById(id)
+                        .orElseThrow(() -> new RuntimeException("Employee Not Found"))
+        );
+    }
 
-    Employee employee = employeeRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Employee Not Found"));
+    @Override
+    @Transactional
+    public EmployeeResponseDto updateEmployee(Long id, EmployeeRequestDto dto) {
 
-    return EmployeeResponseDto.builder()
-            .id(employee.getId())
-            .employeeCode(employee.getEmployeeCode())
-            .firstName(employee.getFirstName())
-            .lastName(employee.getLastName())
-            .email(employee.getEmail())
-            .designation(employee.getDesignation())
-            .department(employee.getDepartment())
-            .active(employee.getActive())
-            .build();
-}
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
+        if (employeeRepository.existsByEmployeeCodeAndIdNot(dto.getEmployeeCode(), id)) {
+            throw new RuntimeException("Employee code '" + dto.getEmployeeCode() + "' is already used by another employee");
+        }
 
-@Override
-public EmployeeResponseDto updateEmployee(
-        Long id,
-        EmployeeRequestDto dto) {
+        employee.setEmployeeCode(dto.getEmployeeCode());
+        employee.setFirstName(dto.getFirstName());
+        employee.setLastName(dto.getLastName());
+        employee.setEmail(dto.getEmail());
+        employee.setPhone(dto.getPhone());
+        employee.setGender(dto.getGender());
+        employee.setDesignation(dto.getDesignation());
+        employee.setSalary(dto.getSalary());
+        employee.setDepartment(dto.getDepartment());
+        employee.setEmploymentType(dto.getEmploymentType());
 
-    Employee employee = employeeRepository.findById(id)
-            .orElseThrow(() ->
-                    new RuntimeException("Employee Not Found"));
+        return toResponseDto(employeeRepository.save(employee));
+    }
 
-    employee.setEmployeeCode(dto.getEmployeeCode());
-    employee.setFirstName(dto.getFirstName());
-    employee.setLastName(dto.getLastName());
-    employee.setEmail(dto.getEmail());
-    employee.setPhone(dto.getPhone());
-    employee.setGender(dto.getGender());
-    employee.setDesignation(dto.getDesignation());
-    employee.setSalary(dto.getSalary());
-    employee.setDepartment(dto.getDepartment());
-    employee.setEmploymentType(dto.getEmploymentType());
+    @Override
+    @Transactional
+    public void deleteEmployee(Long id) {
+        if (!employeeRepository.existsById(id)) {
+            throw new RuntimeException("Employee Not Found");
+        }
+        employeeRepository.deleteById(id);
+    }
 
-    Employee updatedEmployee =
-            employeeRepository.save(employee);
-
-    return EmployeeResponseDto.builder()
-            .id(updatedEmployee.getId())
-            .employeeCode(updatedEmployee.getEmployeeCode())
-            .firstName(updatedEmployee.getFirstName())
-            .lastName(updatedEmployee.getLastName())
-            .email(updatedEmployee.getEmail())
-            .designation(updatedEmployee.getDesignation())
-            .department(updatedEmployee.getDepartment())
-            .active(updatedEmployee.getActive())
-            .build();
-}
-
-  @Override
-public void deleteEmployee(Long id) {
-
-    Employee employee = employeeRepository.findById(id)
-            .orElseThrow(() ->
-                    new RuntimeException("Employee Not Found"));
-
-    employeeRepository.delete(employee);
-}
+    private EmployeeResponseDto toResponseDto(Employee e) {
+        return EmployeeResponseDto.builder()
+                .id(e.getId())
+                .employeeCode(e.getEmployeeCode())
+                .firstName(e.getFirstName())
+                .lastName(e.getLastName())
+                .email(e.getEmail())
+                .phone(e.getPhone())
+                .gender(e.getGender())
+                .designation(e.getDesignation())
+                .salary(e.getSalary())
+                .department(e.getDepartment())
+                .employmentType(e.getEmploymentType())
+                .active(e.getActive())
+                .build();
+    }
 }
