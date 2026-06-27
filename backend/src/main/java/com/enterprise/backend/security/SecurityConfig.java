@@ -56,6 +56,7 @@ public CorsConfigurationSource corsConfigurationSource() {
         .requestMatchers("/api/employees/**").permitAll()
         .requestMatchers("/api/departments/**").permitAll()
         .requestMatchers("/api/attendance/**").permitAll()
+           .requestMatchers("/api/leave/**").permitAll()
         .anyRequest().authenticated()
         
 )

@@ -98,6 +98,61 @@ public class LeaveService {
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
+public LeaveResponseDto getLeaveById(Long id) {
+
+    LeaveRequest leave =
+            leaveRequestRepository
+                    .findById(id)
+                    .orElseThrow(() ->
+                            new RuntimeException("Leave Not Found"));
+
+    return mapToDto(leave);
+}
+public LeaveResponseDto updateLeave(
+        Long id,
+        LeaveRequestDto dto) {
+
+    LeaveRequest leave =
+            leaveRequestRepository
+                    .findById(id)
+                    .orElseThrow(() ->
+                            new RuntimeException("Leave Not Found"));
+
+    if (leave.getStatus() != LeaveStatus.PENDING) {
+
+        throw new RuntimeException(
+                "Only Pending Leave Can Be Updated");
+    }
+
+    int totalDays =
+            (int) ChronoUnit.DAYS.between(
+                    dto.getStartDate(),
+                    dto.getEndDate()) + 1;
+
+    leave.setLeaveType(dto.getLeaveType());
+    leave.setStartDate(dto.getStartDate());
+    leave.setEndDate(dto.getEndDate());
+    leave.setReason(dto.getReason());
+    leave.setPriority(dto.getPriority());
+    leave.setBackupEmployeeId(dto.getBackupEmployeeId());
+    leave.setTotalDays(totalDays);
+
+    LeaveRequest updatedLeave =
+            leaveRequestRepository.save(leave);
+
+    return mapToDto(updatedLeave);
+}
+
+public void deleteLeave(Long id) {
+
+    LeaveRequest leave =
+            leaveRequestRepository
+                    .findById(id)
+                    .orElseThrow(() ->
+                            new RuntimeException("Leave Not Found"));
+
+    leaveRequestRepository.delete(leave);
+}
 
     private LeaveResponseDto mapToDto(
             LeaveRequest leave) {
