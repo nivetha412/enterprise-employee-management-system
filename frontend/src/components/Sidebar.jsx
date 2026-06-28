@@ -1,107 +1,161 @@
 import { Link, useLocation } from "react-router-dom";
+import {
+  RiDashboardLine, RiTeamLine, RiBuildingLine, RiTimeLine,
+  RiCalendarCheckLine, RiLogoutBoxLine, RiBarChartLine,
+  RiShieldUserLine
+} from "react-icons/ri";
 
 const navItems = {
   ADMIN: [
-    { to: "/dashboard", icon: "📊", label: "Dashboard" },
-    { to: "/employees", icon: "👥", label: "Employees" },
-    { to: "/departments", icon: "🏢", label: "Departments" },
-    { to: "/attendance", icon: "🕐", label: "Attendance" },
+    { to: "/dashboard",   icon: RiDashboardLine,     label: "Dashboard"   },
+    { to: "/employees",   icon: RiTeamLine,           label: "Employees"   },
+    { to: "/departments", icon: RiBuildingLine,       label: "Departments" },
+    { to: "/attendance",  icon: RiTimeLine,           label: "Attendance"  },
+    { to: "/leave",       icon: RiCalendarCheckLine,  label: "Leave"       },
   ],
   HR: [
-    { to: "/dashboard", icon: "📊", label: "Dashboard" },
-    { to: "/employees", icon: "👥", label: "Employees" },
-    { to: "/attendance", icon: "🕐", label: "Attendance" },
+    { to: "/dashboard",   icon: RiDashboardLine,     label: "Dashboard"   },
+    { to: "/employees",   icon: RiTeamLine,           label: "Employees"   },
+    { to: "/attendance",  icon: RiTimeLine,           label: "Attendance"  },
+    { to: "/leave",       icon: RiCalendarCheckLine,  label: "Leave"       },
   ],
   EMPLOYEE: [
-    { to: "/dashboard", icon: "📊", label: "Dashboard" },
-    { to: "/attendance", icon: "🕐", label: "My Attendance" },
+    { to: "/dashboard",   icon: RiDashboardLine,     label: "Dashboard"        },
+    { to: "/attendance",  icon: RiTimeLine,           label: "My Attendance"    },
+    { to: "/leave",       icon: RiCalendarCheckLine,  label: "My Leave"         },
   ],
 };
 
-function Sidebar() {
-  const role = localStorage.getItem("role");
+export default function Sidebar({ collapsed }) {
+  const role = localStorage.getItem("role") || "EMPLOYEE";
   const location = useLocation();
+  const items = navItems[role] || navItems["EMPLOYEE"];
 
   const logout = () => {
     localStorage.clear();
     window.location.href = "/";
   };
 
-  const items = navItems[role] || navItems["EMPLOYEE"];
+  const w = collapsed ? "var(--sidebar-collapsed)" : "var(--sidebar-width)";
 
   return (
-    <div style={{
-      width: "var(--sidebar-width)",
+    <aside style={{
+      width: w, minWidth: w, maxWidth: w,
       minHeight: "calc(100vh - var(--navbar-height))",
-      background: "#1e1b4b",
-      display: "flex",
-      flexDirection: "column",
-      padding: "20px 12px",
+      background: "linear-gradient(180deg, #0f172a 0%, #1e293b 100%)",
+      display: "flex", flexDirection: "column",
+      padding: collapsed ? "20px 8px" : "20px 12px",
       flexShrink: 0,
       position: "sticky",
       top: "var(--navbar-height)",
       height: "calc(100vh - var(--navbar-height))",
-      overflowY: "auto"
+      overflowY: "auto", overflowX: "hidden",
+      transition: "width 0.25s cubic-bezier(0.4,0,0.2,1), min-width 0.25s, max-width 0.25s, padding 0.25s",
+      zIndex: 100,
     }}>
-      <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", padding: "0 10px", marginBottom: "8px" }}>
-        Navigation
-      </div>
+
+      {!collapsed && (
+        <div style={{
+          color: "rgba(148,163,184,0.7)", fontSize: "10px", fontWeight: 700,
+          letterSpacing: "0.12em", textTransform: "uppercase",
+          padding: "0 10px", marginBottom: "10px"
+        }}>
+          Main Menu
+        </div>
+      )}
 
       <nav style={{ display: "flex", flexDirection: "column", gap: "2px", flex: 1 }}>
-        {items.map(({ to, icon, label }) => {
+        {items.map(({ to, icon: Icon, label }) => {
           const isActive = location.pathname === to;
           return (
             <Link
               key={to}
               to={to}
+              title={collapsed ? label : ""}
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                padding: "10px 12px",
-                borderRadius: "8px",
+                display: "flex", alignItems: "center",
+                gap: collapsed ? "0" : "10px",
+                justifyContent: collapsed ? "center" : "flex-start",
+                padding: collapsed ? "10px" : "10px 12px",
+                borderRadius: "10px",
                 textDecoration: "none",
-                color: isActive ? "#fff" : "rgba(255,255,255,0.6)",
-                background: isActive ? "rgba(99,102,241,0.35)" : "transparent",
+                color: isActive ? "#fff" : "rgba(148,163,184,0.85)",
+                background: isActive
+                  ? "linear-gradient(135deg, rgba(59,130,246,0.35), rgba(139,92,246,0.25))"
+                  : "transparent",
                 fontWeight: isActive ? 600 : 400,
-                fontSize: "13.5px",
+                fontSize: "13px",
                 transition: "all 0.15s ease",
-                borderLeft: isActive ? "3px solid #818cf8" : "3px solid transparent",
+                borderLeft: !collapsed && isActive ? "3px solid #60a5fa" : "3px solid transparent",
+                position: "relative",
+                whiteSpace: "nowrap", overflow: "hidden",
+              }}
+              onMouseEnter={e => {
+                if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+                if (!isActive) e.currentTarget.style.color = "#fff";
+              }}
+              onMouseLeave={e => {
+                if (!isActive) e.currentTarget.style.background = "transparent";
+                if (!isActive) e.currentTarget.style.color = "rgba(148,163,184,0.85)";
               }}
             >
-              <span style={{ fontSize: "15px", width: "20px", textAlign: "center" }}>{icon}</span>
-              {label}
+              <Icon size={18} style={{ flexShrink: 0 }} />
+              {!collapsed && <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>}
+              {isActive && !collapsed && (
+                <span style={{
+                  marginLeft: "auto", width: "6px", height: "6px",
+                  borderRadius: "50%", background: "#60a5fa", flexShrink: 0
+                }} />
+              )}
             </Link>
           );
         })}
       </nav>
 
-      <div style={{ marginTop: "auto", paddingTop: "16px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+      {!collapsed && (
+        <div style={{
+          margin: "12px 0 8px",
+          padding: "10px 12px",
+          borderRadius: "10px",
+          background: "rgba(59,130,246,0.1)",
+          border: "1px solid rgba(59,130,246,0.2)"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <RiShieldUserLine size={14} color="#60a5fa" />
+            <span style={{ fontSize: "11px", color: "rgba(148,163,184,0.9)", fontWeight: 500 }}>
+              Logged in as
+            </span>
+          </div>
+          <div style={{ fontSize: "12px", fontWeight: 700, color: "#93c5fd", marginTop: "2px" }}>
+            {role}
+          </div>
+        </div>
+      )}
+
+      <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: "12px" }}>
         <button
           onClick={logout}
+          title={collapsed ? "Logout" : ""}
           style={{
             width: "100%",
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            padding: "10px 12px",
-            borderRadius: "8px",
-            background: "rgba(220,38,38,0.15)",
+            display: "flex", alignItems: "center",
+            gap: collapsed ? "0" : "10px",
+            justifyContent: collapsed ? "center" : "flex-start",
+            padding: collapsed ? "10px" : "10px 12px",
+            borderRadius: "10px",
+            background: "rgba(220,38,38,0.12)",
             color: "#fca5a5",
-            border: "1px solid rgba(220,38,38,0.25)",
-            cursor: "pointer",
-            fontSize: "13.5px",
-            fontWeight: 500,
+            border: "1px solid rgba(220,38,38,0.2)",
+            cursor: "pointer", fontSize: "13px", fontWeight: 500,
             transition: "all 0.15s ease",
           }}
-          onMouseEnter={e => e.currentTarget.style.background = "rgba(220,38,38,0.28)"}
-          onMouseLeave={e => e.currentTarget.style.background = "rgba(220,38,38,0.15)"}
+          onMouseEnter={e => e.currentTarget.style.background = "rgba(220,38,38,0.22)"}
+          onMouseLeave={e => e.currentTarget.style.background = "rgba(220,38,38,0.12)"}
         >
-          <span>🚪</span> Logout
+          <RiLogoutBoxLine size={16} style={{ flexShrink: 0 }} />
+          {!collapsed && <span>Sign Out</span>}
         </button>
       </div>
-    </div>
+    </aside>
   );
 }
-
-export default Sidebar;

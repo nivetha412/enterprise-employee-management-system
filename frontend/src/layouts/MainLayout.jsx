@@ -1,18 +1,22 @@
+import { useState } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 
-function MainLayout({ children }) {
+export default function MainLayout({ children }) {
+  const [collapsed, setCollapsed] = useState(false);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-      <Navbar />
+      <Navbar onSidebarToggle={() => setCollapsed(prev => !prev)} />
       <div style={{ display: "flex", flex: 1 }}>
-        <Sidebar />
+        <Sidebar collapsed={collapsed} />
         <main style={{
           flex: 1,
           padding: "28px 32px",
           background: "var(--bg-main)",
           minHeight: "calc(100vh - var(--navbar-height))",
-          overflowX: "hidden"
+          overflowX: "hidden",
+          transition: "padding 0.25s"
         }}>
           {children}
         </main>
@@ -20,5 +24,3 @@ function MainLayout({ children }) {
     </div>
   );
 }
-
-export default MainLayout;

@@ -1,1 +1,27 @@
-/* App-level styles — layout handled per component */
+/* App-level global responsive styles */
+@media (max-width: 1024px) {
+  .dashboard-two-col {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --sidebar-width: 0px;
+    --navbar-height: 60px;
+  }
+  .dashboard-two-col {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Input placeholder color for search */
+input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* Remove default button focus ring and add custom */
+button:focus-visible {
+  outline: 2px solid var(--primary-light);
+  outline-offset: 2px;
+}
