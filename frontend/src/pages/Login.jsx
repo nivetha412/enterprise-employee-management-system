@@ -1,6 +1,7 @@
 import { useState } from "react";
 import api from "../services/api";
 import { useNavigate } from "react-router-dom";
+import { ROLE_TO_DOMAIN } from "../context/RoleContext";
 
 function Login() {
   const navigate = useNavigate();
@@ -20,7 +21,8 @@ function Login() {
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("email", response.data.email);
       localStorage.setItem("role", response.data.role);
-      navigate("/dashboard");
+      const domain = ROLE_TO_DOMAIN[response.data.role] || "employee";
+      navigate(`/${domain}/dashboard`);
     } catch (error) {
       console.error(error);
       setError("Invalid email or password. Please try again.");

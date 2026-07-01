@@ -1,69 +1,77 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 
-import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import Employees from "./pages/Employees";
-import Departments from "./pages/Departments";
-import Attendance from "./pages/Attendance";
+import Login        from "./pages/Login";
+import Dashboard    from "./pages/Dashboard";
+import Employees    from "./pages/Employees";
+import Departments  from "./pages/Departments";
+import Attendance   from "./pages/Attendance";
+import Leave        from "./pages/Leave";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
     <Routes>
 
-      <Route
-        path="/"
-        element={<Login />}
-      />
+      {/* Public */}
+      <Route path="/" element={<Login />} />
 
-      <Route
-        path="/dashboard"
-        element={<Dashboard />}
-      />
+      {/* Domain-scoped protected routes */}
+      <Route path="/:domain">
 
-      <Route
-  path="/employees"
-  element={
-    <ProtectedRoute
-      allowedRoles={[
-        "ADMIN",
-        "HR"
-      ]}
-    >
-      <Employees />
-    </ProtectedRoute>
-  }
-/>
+        <Route path="dashboard" element={
+          <ProtectedRoute allowedRoles={["ADMIN", "HR", "EMPLOYEE"]}>
+            <Dashboard />
+          </ProtectedRoute>
+        } />
 
-      <Route
-  path="/departments"
-  element={
-    <ProtectedRoute
-      allowedRoles={[
-        "ADMIN"
-      ]}
-    >
-      <Departments />
-    </ProtectedRoute>
-  }
-/>
-<Route
-  path="/attendance"
-  element={
-    <ProtectedRoute
-      allowedRoles={[
-        "ADMIN",
-        "HR",
-        "EMPLOYEE"
-      ]}
-    >
-      <Attendance />
-    </ProtectedRoute>
-  }
-/>
+        <Route path="attendance" element={
+          <ProtectedRoute allowedRoles={["ADMIN", "HR", "EMPLOYEE"]}>
+            <Attendance />
+          </ProtectedRoute>
+        } />
+
+        <Route path="leave" element={
+          <ProtectedRoute allowedRoles={["ADMIN", "HR", "EMPLOYEE"]}>
+            <Leave />
+          </ProtectedRoute>
+        } />
+
+        <Route path="employees" element={
+          <ProtectedRoute allowedRoles={["ADMIN", "HR"]}>
+            <Employees />
+          </ProtectedRoute>
+        } />
+
+        <Route path="departments" element={
+          <ProtectedRoute allowedRoles={["ADMIN"]}>
+            <Departments />
+          </ProtectedRoute>
+        } />
+
+        {/* /:domain with no sub-path → go to dashboard */}
+        <Route index element={<DomainIndex />} />
+
+        {/* Unknown sub-path under a domain → go to that domain's dashboard */}
+        <Route path="*" element={<DomainIndex />} />
+
+      </Route>
+
+      {/* Absolute catch-all */}
+      <Route path="*" element={<Navigate to="/" replace />} />
 
     </Routes>
   );
+}
+
+/** Redirects /:domain → /:domain/dashboard */
+function DomainIndex() {
+  const token = localStorage.getItem("token");
+  const role  = localStorage.getItem("role");
+  if (!token || !role) return <Navigate to="/" replace />;
+
+  const domainMap = { ADMIN: "admin", HR: "hr", EMPLOYEE: "employee" };
+  const domain = domainMap[role] || "employee";
+  return <Navigate to={`/${domain}/dashboard`} replace />;
 }
 
 export default App;

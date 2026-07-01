@@ -1,18 +1,21 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   RiBuildingLine, RiSearchLine, RiBellLine, RiSettings3Line,
   RiUserLine, RiLogoutBoxLine, RiShieldUserLine, RiArrowDownSLine,
   RiCheckLine
 } from "react-icons/ri";
+import { useRole, ROLE_TO_DOMAIN } from "../context/RoleContext";
 
 const ROLES = ["ADMIN", "HR", "EMPLOYEE"];
 
 export default function Navbar({ onSidebarToggle }) {
   const email = localStorage.getItem("email") || "";
-  const role = localStorage.getItem("role") || "EMPLOYEE";
+  const { role: ctxRole, setRole } = useRole();
+  const role = ctxRole || localStorage.getItem("role") || "EMPLOYEE";
   const initials = email ? email.slice(0, 2).toUpperCase() : "U";
   const navigate = useNavigate();
+  const { domain } = useParams();
 
   const [showProfile, setShowProfile] = useState(false);
   const [showNotif, setShowNotif] = useState(false);
@@ -43,13 +46,14 @@ export default function Navbar({ onSidebarToggle }) {
   ];
 
   const switchRole = (newRole) => {
-    localStorage.setItem("role", newRole);
+    setRole(newRole);
     setShowRole(false);
-    window.location.reload();
+    const newDomain = ROLE_TO_DOMAIN[newRole] || "employee";
+    navigate(`/${newDomain}/dashboard`, { replace: true });
   };
 
   const roleColors = { ADMIN: "#1e40af", HR: "#7c3aed", EMPLOYEE: "#059669" };
-  const roleBg = { ADMIN: "#eff6ff", HR: "#ede9fe", EMPLOYEE: "#d1fae5" };
+  const roleBg     = { ADMIN: "#eff6ff", HR: "#ede9fe", EMPLOYEE: "#d1fae5" };
 
   return (
     <header style={{

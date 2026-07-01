@@ -1,35 +1,37 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import {
   RiDashboardLine, RiTeamLine, RiBuildingLine, RiTimeLine,
-  RiCalendarCheckLine, RiLogoutBoxLine, RiBarChartLine,
-  RiShieldUserLine
+  RiCalendarCheckLine, RiLogoutBoxLine, RiShieldUserLine
 } from "react-icons/ri";
+import { ROLE_TO_DOMAIN } from "../context/RoleContext";
 
-const navItems = {
+const NAV_ITEMS = {
   ADMIN: [
-    { to: "/dashboard",   icon: RiDashboardLine,     label: "Dashboard"   },
-    { to: "/employees",   icon: RiTeamLine,           label: "Employees"   },
-    { to: "/departments", icon: RiBuildingLine,       label: "Departments" },
-    { to: "/attendance",  icon: RiTimeLine,           label: "Attendance"  },
-    { to: "/leave",       icon: RiCalendarCheckLine,  label: "Leave"       },
+    { path: "dashboard",   icon: RiDashboardLine,    label: "Dashboard"    },
+    { path: "employees",   icon: RiTeamLine,          label: "Employees"    },
+    { path: "departments", icon: RiBuildingLine,      label: "Departments"  },
+    { path: "attendance",  icon: RiTimeLine,          label: "Attendance"   },
+    { path: "leave",       icon: RiCalendarCheckLine, label: "Leave"        },
   ],
   HR: [
-    { to: "/dashboard",   icon: RiDashboardLine,     label: "Dashboard"   },
-    { to: "/employees",   icon: RiTeamLine,           label: "Employees"   },
-    { to: "/attendance",  icon: RiTimeLine,           label: "Attendance"  },
-    { to: "/leave",       icon: RiCalendarCheckLine,  label: "Leave"       },
+    { path: "dashboard",   icon: RiDashboardLine,    label: "Dashboard"    },
+    { path: "employees",   icon: RiTeamLine,          label: "Employees"    },
+    { path: "attendance",  icon: RiTimeLine,          label: "Attendance"   },
+    { path: "leave",       icon: RiCalendarCheckLine, label: "Leave"        },
   ],
   EMPLOYEE: [
-    { to: "/dashboard",   icon: RiDashboardLine,     label: "Dashboard"        },
-    { to: "/attendance",  icon: RiTimeLine,           label: "My Attendance"    },
-    { to: "/leave",       icon: RiCalendarCheckLine,  label: "My Leave"         },
+    { path: "dashboard",   icon: RiDashboardLine,    label: "Dashboard"    },
+    { path: "attendance",  icon: RiTimeLine,          label: "My Attendance"},
+    { path: "leave",       icon: RiCalendarCheckLine, label: "My Leave"     },
   ],
 };
 
 export default function Sidebar({ collapsed }) {
-  const role = localStorage.getItem("role") || "EMPLOYEE";
+  const role     = localStorage.getItem("role") || "EMPLOYEE";
   const location = useLocation();
-  const items = navItems[role] || navItems["EMPLOYEE"];
+  const { domain } = useParams();
+  const activeDomain = domain || ROLE_TO_DOMAIN[role] || "employee";
+  const items    = NAV_ITEMS[role] || NAV_ITEMS["EMPLOYEE"];
 
   const logout = () => {
     localStorage.clear();
@@ -65,12 +67,13 @@ export default function Sidebar({ collapsed }) {
       )}
 
       <nav style={{ display: "flex", flexDirection: "column", gap: "2px", flex: 1 }}>
-        {items.map(({ to, icon: Icon, label }) => {
-          const isActive = location.pathname === to;
+        {items.map(({ path, icon: Icon, label }) => {
+          const fullPath = `/${activeDomain}/${path}`;
+          const isActive = location.pathname === fullPath;
           return (
             <Link
-              key={to}
-              to={to}
+              key={path}
+              to={fullPath}
               title={collapsed ? label : ""}
               style={{
                 display: "flex", alignItems: "center",
@@ -87,25 +90,19 @@ export default function Sidebar({ collapsed }) {
                 fontSize: "13px",
                 transition: "all 0.15s ease",
                 borderLeft: !collapsed && isActive ? "3px solid #60a5fa" : "3px solid transparent",
-                position: "relative",
                 whiteSpace: "nowrap", overflow: "hidden",
               }}
               onMouseEnter={e => {
-                if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.06)";
-                if (!isActive) e.currentTarget.style.color = "#fff";
+                if (!isActive) { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#fff"; }
               }}
               onMouseLeave={e => {
-                if (!isActive) e.currentTarget.style.background = "transparent";
-                if (!isActive) e.currentTarget.style.color = "rgba(148,163,184,0.85)";
+                if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(148,163,184,0.85)"; }
               }}
             >
               <Icon size={18} style={{ flexShrink: 0 }} />
               {!collapsed && <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>}
               {isActive && !collapsed && (
-                <span style={{
-                  marginLeft: "auto", width: "6px", height: "6px",
-                  borderRadius: "50%", background: "#60a5fa", flexShrink: 0
-                }} />
+                <span style={{ marginLeft: "auto", width: "6px", height: "6px", borderRadius: "50%", background: "#60a5fa", flexShrink: 0 }} />
               )}
             </Link>
           );
@@ -114,21 +111,14 @@ export default function Sidebar({ collapsed }) {
 
       {!collapsed && (
         <div style={{
-          margin: "12px 0 8px",
-          padding: "10px 12px",
-          borderRadius: "10px",
-          background: "rgba(59,130,246,0.1)",
-          border: "1px solid rgba(59,130,246,0.2)"
+          margin: "12px 0 8px", padding: "10px 12px", borderRadius: "10px",
+          background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.2)"
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <RiShieldUserLine size={14} color="#60a5fa" />
-            <span style={{ fontSize: "11px", color: "rgba(148,163,184,0.9)", fontWeight: 500 }}>
-              Logged in as
-            </span>
+            <span style={{ fontSize: "11px", color: "rgba(148,163,184,0.9)", fontWeight: 500 }}>Logged in as</span>
           </div>
-          <div style={{ fontSize: "12px", fontWeight: 700, color: "#93c5fd", marginTop: "2px" }}>
-            {role}
-          </div>
+          <div style={{ fontSize: "12px", fontWeight: 700, color: "#93c5fd", marginTop: "2px" }}>{role}</div>
         </div>
       )}
 
@@ -137,15 +127,12 @@ export default function Sidebar({ collapsed }) {
           onClick={logout}
           title={collapsed ? "Logout" : ""}
           style={{
-            width: "100%",
-            display: "flex", alignItems: "center",
+            width: "100%", display: "flex", alignItems: "center",
             gap: collapsed ? "0" : "10px",
             justifyContent: collapsed ? "center" : "flex-start",
             padding: collapsed ? "10px" : "10px 12px",
-            borderRadius: "10px",
-            background: "rgba(220,38,38,0.12)",
-            color: "#fca5a5",
-            border: "1px solid rgba(220,38,38,0.2)",
+            borderRadius: "10px", background: "rgba(220,38,38,0.12)",
+            color: "#fca5a5", border: "1px solid rgba(220,38,38,0.2)",
             cursor: "pointer", fontSize: "13px", fontWeight: 500,
             transition: "all 0.15s ease",
           }}

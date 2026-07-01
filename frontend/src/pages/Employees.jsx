@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
 import MainLayout from "../layouts/MainLayout";
-import { s } from "../styles/ui";
+import { s, Toast, PageHeader, StatCard, EmptyState, SectionHeader, Field, Avatar } from "../styles/ui.jsx";
+import {
+  RiTeamLine, RiUserAddLine, RiSearchLine, RiFilterLine,
+  RiEditLine, RiDeleteBinLine, RiUserHeartLine, RiUserUnfollowLine,
+  RiCloseLine, RiCheckLine, RiDownloadLine
+} from "react-icons/ri";
 
 const emptyForm = {
   employeeCode: "", firstName: "", lastName: "", email: "",
@@ -9,24 +14,22 @@ const emptyForm = {
   department: "", employmentType: ""
 };
 
-function Toast({ message, type }) {
-  if (!message) return null;
-  const colors = {
-    success: { bg: "var(--success-bg)", color: "var(--success)", border: "#6ee7b7" },
-    error:   { bg: "var(--danger-bg)",  color: "var(--danger)",  border: "#fecaca" },
-  };
-  const c = colors[type] || colors.success;
-  return (
-    <div style={{
-      position: "fixed", top: "80px", right: "24px", zIndex: 999,
-      background: c.bg, color: c.color, border: `1px solid ${c.border}`,
-      borderRadius: "10px", padding: "12px 20px", fontSize: "13px",
-      fontWeight: 600, boxShadow: "var(--shadow-md)",
-      display: "flex", alignItems: "center", gap: "8px"
-    }}>
-      {type === "success" ? "✅" : "❌"} {message}
-    </div>
-  );
+const EMP_TYPE_COLORS = {
+  FULL_TIME: { color: "#1e40af", bg: "#dbeafe" },
+  PART_TIME: { color: "#7c3aed", bg: "#ede9fe" },
+  CONTRACT:  { color: "#d97706", bg: "#fef3c7" },
+  INTERN:    { color: "#0891b2", bg: "#cffafe" },
+};
+
+const AVATAR_PALETTE = [
+  { color: "#1e40af", bg: "#dbeafe" }, { color: "#7c3aed", bg: "#ede9fe" },
+  { color: "#059669", bg: "#d1fae5" }, { color: "#d97706", bg: "#fef3c7" },
+  { color: "#0891b2", bg: "#cffafe" }, { color: "#dc2626", bg: "#fee2e2" },
+];
+
+function getAvatarStyle(name = "") {
+  const idx = (name.charCodeAt(0) || 0) % AVATAR_PALETTE.length;
+  return AVATAR_PALETTE[idx];
 }
 
 function Employees() {
@@ -36,8 +39,10 @@ function Employees() {
   const [loading, setLoading]       = useState(true);
   const [search, setSearch]         = useState("");
   const [filterDept, setFilterDept] = useState("");
+  const [filterType, setFilterType] = useState("");
   const [toast, setToast]           = useState({ message: "", type: "success" });
   const [errors, setErrors]         = useState({});
+  const [showForm, setShowForm]     = useState(false);
 
   useEffect(() => { fetchEmployees(); }, []);
 
@@ -61,13 +66,13 @@ function Employees() {
 
   const validate = () => {
     const e = {};
-    if (!form.employeeCode.trim())  e.employeeCode  = "Required";
-    if (!form.firstName.trim())     e.firstName     = "Required";
-    if (!form.lastName.trim())      e.lastName      = "Required";
-    if (!form.email.trim())         e.email         = "Required";
+    if (!form.employeeCode.trim())   e.employeeCode   = "Required";
+    if (!form.firstName.trim())      e.firstName      = "Required";
+    if (!form.lastName.trim())       e.lastName       = "Required";
+    if (!form.email.trim())          e.email          = "Required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Invalid email";
-    if (!form.designation.trim())   e.designation   = "Required";
-    if (!form.department.trim())    e.department    = "Required";
+    if (!form.designation.trim())    e.designation    = "Required";
+    if (!form.department.trim())     e.department     = "Required";
     if (!form.employmentType.trim()) e.employmentType = "Required";
     if (form.salary && isNaN(Number(form.salary))) e.salary = "Must be a number";
     if (form.salary && Number(form.salary) <= 0)   e.salary = "Must be positive";
@@ -80,7 +85,7 @@ function Employees() {
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }));
   };
 
-  const resetForm = () => { setForm(emptyForm); setEditingId(null); setErrors({}); };
+  const resetForm = () => { setForm(emptyForm); setEditingId(null); setErrors({}); setShowForm(false); };
 
   const createEmployee = async () => {
     if (!validate()) return;
@@ -99,12 +104,13 @@ function Employees() {
     setEditingId(emp.id);
     setForm({
       employeeCode: emp.employeeCode || "", firstName: emp.firstName || "",
-      lastName: emp.lastName || "",        email: emp.email || "",
-      phone: emp.phone || "",              gender: emp.gender || "",
-      designation: emp.designation || "",  salary: emp.salary ?? "",
-      department: emp.department || "",    employmentType: emp.employmentType || ""
+      lastName: emp.lastName || "",         email: emp.email || "",
+      phone: emp.phone || "",               gender: emp.gender || "",
+      designation: emp.designation || "",   salary: emp.salary ?? "",
+      department: emp.department || "",     employmentType: emp.employmentType || ""
     });
     setErrors({});
+    setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -140,219 +146,321 @@ function Employees() {
       `${emp.firstName} ${emp.lastName} ${emp.email} ${emp.employeeCode}`
         .toLowerCase().includes(search.toLowerCase());
     const matchDept = !filterDept || emp.department === filterDept;
-    return matchSearch && matchDept;
+    const matchType = !filterType || emp.employmentType === filterType;
+    return matchSearch && matchDept && matchType;
   });
 
-  const focusInput = e => e.target.style.borderColor = "var(--primary)";
-  const blurInput  = e => e.target.style.borderColor = errors[e.target.name] ? "var(--danger)" : "var(--border)";
+  const activeCount   = employees.filter(e => e.active).length;
+  const inactiveCount = employees.filter(e => !e.active).length;
+  const deptCount     = departments.length;
 
-  const fieldInput = (field, placeholder, type = "text") => (
-    <div>
-      <input
-        name={field}
-        style={{ ...s.input, borderColor: errors[field] ? "var(--danger)" : "var(--border)" }}
-        type={type}
-        placeholder={placeholder}
-        value={form[field]}
-        onChange={e => handleChange(field, e.target.value)}
-        onFocus={focusInput}
-        onBlur={blurInput}
-      />
-      {errors[field] && <span style={{ color: "var(--danger)", fontSize: "11px" }}>{errors[field]}</span>}
-    </div>
-  );
+  const inputStyle = (field) => ({
+    ...s.input,
+    borderColor: errors[field] ? "var(--danger)" : "var(--border)",
+    boxShadow: errors[field] ? "0 0 0 3px rgba(220,38,38,0.08)" : "none"
+  });
+
+  const onFocus = e => { e.target.style.borderColor = "#3b82f6"; e.target.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.12)"; };
+  const onBlur  = e => { e.target.style.borderColor = errors[e.target.name] ? "var(--danger)" : "var(--border)"; e.target.style.boxShadow = "none"; };
 
   return (
     <MainLayout>
       <Toast message={toast.message} type={toast.type} />
 
-      <h1 style={s.pageTitle}>Employees</h1>
-      <p style={s.pageSubtitle}>Manage your organization's employees</p>
+      {/* Page Header */}
+      <PageHeader
+        icon={<RiTeamLine size={22} color="#fff" />}
+        title="Employee Directory"
+        subtitle={`${employees.length} total employees across ${deptCount} departments`}
+      >
+        <button
+          style={s.btnPrimary}
+          onClick={() => { resetForm(); setShowForm(true); }}
+          onMouseEnter={e => e.currentTarget.style.opacity = "0.88"}
+          onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+        >
+          <RiUserAddLine size={15} /> Add Employee
+        </button>
+      </PageHeader>
 
-      {/* Form Card */}
-      <div style={s.card}>
-        <h3 style={s.sectionTitle}>
-          {editingId ? "✏️ Edit Employee" : "➕ Add New Employee"}
-        </h3>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "14px" }}>
-          <div>
-            <label style={s.label}>Employee Code *</label>
-            {fieldInput("employeeCode", "EMP001")}
-          </div>
-          <div>
-            <label style={s.label}>First Name *</label>
-            {fieldInput("firstName", "John")}
-          </div>
-          <div>
-            <label style={s.label}>Last Name *</label>
-            {fieldInput("lastName", "Doe")}
-          </div>
-          <div>
-            <label style={s.label}>Email *</label>
-            {fieldInput("email", "john@company.com", "email")}
-          </div>
-          <div>
-            <label style={s.label}>Phone</label>
-            {fieldInput("phone", "+1 234 567 8900")}
-          </div>
-          <div>
-            <label style={s.label}>Gender</label>
-            <select
-              name="gender"
-              style={{ ...s.select, width: "100%" }}
-              value={form.gender}
-              onChange={e => handleChange("gender", e.target.value)}
-            >
-              <option value="">Select</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          <div>
-            <label style={s.label}>Designation *</label>
-            {fieldInput("designation", "Software Engineer")}
-          </div>
-          <div>
-            <label style={s.label}>Salary</label>
-            {fieldInput("salary", "50000", "number")}
-          </div>
-          <div>
-            <label style={s.label}>Department *</label>
-            {fieldInput("department", "Engineering")}
-          </div>
-          <div>
-            <label style={s.label}>Employment Type *</label>
-            <div>
-              <select
-                name="employmentType"
+      {/* Stat Row */}
+      <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "20px" }}>
+        <StatCard label="Total Employees" value={employees.length} color="#1e40af" bg="#dbeafe" icon={<RiTeamLine color="#1e40af" size={18} />} />
+        <StatCard label="Active"          value={activeCount}      color="#059669" bg="#d1fae5" icon={<RiUserHeartLine color="#059669" size={18} />} />
+        <StatCard label="Inactive"        value={inactiveCount}    color="#dc2626" bg="#fee2e2" icon={<RiUserUnfollowLine color="#dc2626" size={18} />} />
+        <StatCard label="Departments"     value={deptCount}        color="#7c3aed" bg="#ede9fe" icon="🏢" />
+      </div>
+
+      {/* Add / Edit Form */}
+      {showForm && (
+        <div style={{ ...s.card, border: editingId ? "1.5px solid #fde68a" : "1.5px solid #bfdbfe" }}>
+          <SectionHeader
+            title={editingId ? "Edit Employee" : "Add New Employee"}
+            countColor={editingId ? "#d97706" : "#1e40af"}
+            countBg={editingId ? "#fef3c7" : "#dbeafe"}
+            count={editingId ? "Editing" : "New"}
+          >
+            <button style={s.btnGhost} onClick={resetForm}>
+              <RiCloseLine size={14} /> Cancel
+            </button>
+          </SectionHeader>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "14px" }}>
+            <Field label="Employee Code *" error={errors.employeeCode}>
+              <input name="employeeCode" style={inputStyle("employeeCode")} placeholder="EMP001"
+                value={form.employeeCode} onChange={e => handleChange("employeeCode", e.target.value)}
+                onFocus={onFocus} onBlur={onBlur} />
+            </Field>
+            <Field label="First Name *" error={errors.firstName}>
+              <input name="firstName" style={inputStyle("firstName")} placeholder="John"
+                value={form.firstName} onChange={e => handleChange("firstName", e.target.value)}
+                onFocus={onFocus} onBlur={onBlur} />
+            </Field>
+            <Field label="Last Name *" error={errors.lastName}>
+              <input name="lastName" style={inputStyle("lastName")} placeholder="Doe"
+                value={form.lastName} onChange={e => handleChange("lastName", e.target.value)}
+                onFocus={onFocus} onBlur={onBlur} />
+            </Field>
+            <Field label="Email *" error={errors.email}>
+              <input name="email" type="email" style={inputStyle("email")} placeholder="john@company.com"
+                value={form.email} onChange={e => handleChange("email", e.target.value)}
+                onFocus={onFocus} onBlur={onBlur} />
+            </Field>
+            <Field label="Phone">
+              <input name="phone" style={s.input} placeholder="+1 234 567 8900"
+                value={form.phone} onChange={e => handleChange("phone", e.target.value)}
+                onFocus={onFocus} onBlur={e => { e.target.style.borderColor = "var(--border)"; e.target.style.boxShadow = "none"; }} />
+            </Field>
+            <Field label="Gender">
+              <select name="gender" style={{ ...s.select, width: "100%" }}
+                value={form.gender} onChange={e => handleChange("gender", e.target.value)}
+                onFocus={onFocus} onBlur={e => { e.target.style.borderColor = "var(--border)"; e.target.style.boxShadow = "none"; }}>
+                <option value="">Select</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </Field>
+            <Field label="Designation *" error={errors.designation}>
+              <input name="designation" style={inputStyle("designation")} placeholder="Software Engineer"
+                value={form.designation} onChange={e => handleChange("designation", e.target.value)}
+                onFocus={onFocus} onBlur={onBlur} />
+            </Field>
+            <Field label="Salary" error={errors.salary}>
+              <input name="salary" type="number" style={inputStyle("salary")} placeholder="50000"
+                value={form.salary} onChange={e => handleChange("salary", e.target.value)}
+                onFocus={onFocus} onBlur={onBlur} />
+            </Field>
+            <Field label="Department *" error={errors.department}>
+              <input name="department" style={inputStyle("department")} placeholder="Engineering"
+                value={form.department} onChange={e => handleChange("department", e.target.value)}
+                onFocus={onFocus} onBlur={onBlur} />
+            </Field>
+            <Field label="Employment Type *" error={errors.employmentType}>
+              <select name="employmentType"
                 style={{ ...s.select, width: "100%", borderColor: errors.employmentType ? "var(--danger)" : "var(--border)" }}
-                value={form.employmentType}
-                onChange={e => handleChange("employmentType", e.target.value)}
-              >
+                value={form.employmentType} onChange={e => handleChange("employmentType", e.target.value)}
+                onFocus={onFocus} onBlur={e => { e.target.style.borderColor = errors.employmentType ? "var(--danger)" : "var(--border)"; e.target.style.boxShadow = "none"; }}>
                 <option value="">Select</option>
                 <option value="FULL_TIME">Full Time</option>
                 <option value="PART_TIME">Part Time</option>
                 <option value="CONTRACT">Contract</option>
                 <option value="INTERN">Intern</option>
               </select>
-              {errors.employmentType && <span style={{ color: "var(--danger)", fontSize: "11px" }}>{errors.employmentType}</span>}
-            </div>
+            </Field>
+          </div>
+
+          <div style={{ display: "flex", gap: "10px", marginTop: "20px", paddingTop: "16px", borderTop: "1px solid var(--border)" }}>
+            {editingId ? (
+              <>
+                <button style={s.btnPrimary} onClick={updateEmployee}
+                  onMouseEnter={e => e.currentTarget.style.opacity = "0.88"}
+                  onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
+                  <RiCheckLine size={14} /> Update Employee
+                </button>
+                <button style={s.btnGhost} onClick={resetForm}>
+                  <RiCloseLine size={14} /> Cancel
+                </button>
+              </>
+            ) : (
+              <button style={s.btnPrimary} onClick={createEmployee}
+                onMouseEnter={e => e.currentTarget.style.opacity = "0.88"}
+                onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
+                <RiUserAddLine size={14} /> Add Employee
+              </button>
+            )}
           </div>
         </div>
-
-        <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
-          {editingId ? (
-            <>
-              <button style={s.btnPrimary} onClick={updateEmployee}>Update Employee</button>
-              <button style={{ ...s.btnDanger, padding: "9px 18px" }} onClick={resetForm}>Cancel</button>
-            </>
-          ) : (
-            <button style={s.btnPrimary} onClick={createEmployee}>Add Employee</button>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* Table Card */}
       <div style={s.card}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", marginBottom: "16px" }}>
-          <h3 style={{ ...s.sectionTitle, marginBottom: 0 }}>
-            All Employees
-            <span style={{ marginLeft: "10px", ...s.badge("#4f46e5", "#eef2ff"), fontSize: "12px" }}>
-              {filtered.length}
-            </span>
-          </h3>
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+        <SectionHeader title="All Employees" count={filtered.length}>
+          {/* Search */}
+          <div style={{ position: "relative" }}>
+            <RiSearchLine size={14} color="var(--text-muted)"
+              style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
             <input
-              style={{ ...s.input, width: "220px" }}
-              placeholder="🔍  Search by name, email, code..."
+              style={{ ...s.input, width: "220px", paddingLeft: "32px", fontSize: "13px" }}
+              placeholder="Search name, email, code…"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              onFocus={focusInput}
-              onBlur={e => e.target.style.borderColor = "var(--border)"}
+              onFocus={onFocus}
+              onBlur={e => { e.target.style.borderColor = "var(--border)"; e.target.style.boxShadow = "none"; }}
             />
-            <select
-              style={{ ...s.select, minWidth: "150px" }}
-              value={filterDept}
-              onChange={e => setFilterDept(e.target.value)}
-            >
-              <option value="">All Departments</option>
-              {departments.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
           </div>
-        </div>
+          {/* Dept filter */}
+          <select style={{ ...s.select, minWidth: "140px", fontSize: "13px" }}
+            value={filterDept} onChange={e => setFilterDept(e.target.value)}>
+            <option value="">All Departments</option>
+            {departments.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+          {/* Type filter */}
+          <select style={{ ...s.select, minWidth: "130px", fontSize: "13px" }}
+            value={filterType} onChange={e => setFilterType(e.target.value)}>
+            <option value="">All Types</option>
+            <option value="FULL_TIME">Full Time</option>
+            <option value="PART_TIME">Part Time</option>
+            <option value="CONTRACT">Contract</option>
+            <option value="INTERN">Intern</option>
+          </select>
+        </SectionHeader>
 
-        <div style={{ overflowX: "auto" }}>
+        <div style={{ overflowX: "auto", borderRadius: "10px", border: "1px solid var(--border)" }}>
           <table style={s.table}>
             <thead>
               <tr>
-                {["Code", "Employee", "Email", "Phone", "Department", "Designation", "Type", "Salary", "Status", "Actions"].map(h => (
+                {["Code", "Employee", "Contact", "Department", "Designation", "Type", "Salary", "Status", "Actions"].map(h => (
                   <th key={h} style={s.th}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={10} style={{ ...s.td, textAlign: "center", padding: "40px", color: "var(--text-muted)" }}>
-                  ⏳ Loading employees...
-                </td></tr>
+                [...Array(5)].map((_, i) => (
+                  <tr key={i}>
+                    {[...Array(9)].map((_, j) => (
+                      <td key={j} style={s.td}>
+                        <div className="skeleton" style={{ height: "14px", borderRadius: "6px", width: j === 1 ? "140px" : "80px" }} />
+                      </td>
+                    ))}
+                  </tr>
+                ))
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={10} style={{ ...s.td, textAlign: "center", padding: "40px", color: "var(--text-muted)" }}>
-                  {search || filterDept ? "No employees match your search." : "No employees found."}
+                <tr><td colSpan={9}>
+                  <EmptyState
+                    icon="👥"
+                    title={search || filterDept || filterType ? "No employees match your filters" : "No employees yet"}
+                    subtitle={search || filterDept || filterType ? "Try adjusting your search or filters" : "Add your first employee to get started"}
+                  />
                 </td></tr>
-              ) : filtered.map(emp => (
-                <tr key={emp.id}
-                  onMouseEnter={e => e.currentTarget.style.background = "#fafafa"}
-                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                  <td style={s.td}>
-                    <span style={{ fontFamily: "monospace", fontSize: "12px", background: "var(--bg-main)", padding: "2px 7px", borderRadius: "4px" }}>
-                      {emp.employeeCode || "—"}
-                    </span>
-                  </td>
-                  <td style={s.td}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <div style={{
-                        width: "32px", height: "32px", borderRadius: "50%",
-                        background: "var(--primary-bg)", color: "var(--primary)",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontWeight: 700, fontSize: "12px", flexShrink: 0
+              ) : filtered.map(emp => {
+                const av = getAvatarStyle(emp.firstName);
+                const typeStyle = EMP_TYPE_COLORS[emp.employmentType] || { color: "#64748b", bg: "#f1f5f9" };
+                return (
+                  <tr key={emp.id}
+                    style={{ transition: "background 0.12s" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+
+                    <td style={s.td}>
+                      <span style={{
+                        fontFamily: "monospace", fontSize: "11.5px", fontWeight: 600,
+                        background: "#f1f5f9", color: "#475569",
+                        padding: "3px 8px", borderRadius: "6px", letterSpacing: "0.04em"
                       }}>
-                        {(emp.firstName?.[0] || "") + (emp.lastName?.[0] || "")}
-                      </div>
-                      <span style={{ fontWeight: 500 }}>{emp.firstName} {emp.lastName}</span>
-                    </div>
-                  </td>
-                  <td style={s.td}>{emp.email}</td>
-                  <td style={s.td}>{emp.phone || "—"}</td>
-                  <td style={s.td}>{emp.department || "—"}</td>
-                  <td style={s.td}>{emp.designation || "—"}</td>
-                  <td style={s.td}>
-                    {emp.employmentType ? (
-                      <span style={s.badge("#0891b2", "#cffafe")}>
-                        {emp.employmentType.replace("_", " ")}
+                        {emp.employeeCode || "—"}
                       </span>
-                    ) : "—"}
-                  </td>
-                  <td style={s.td}>
-                    {emp.salary ? `$${emp.salary.toLocaleString()}` : "—"}
-                  </td>
-                  <td style={s.td}>
-                    <span style={s.badge(
-                      emp.active ? "var(--success)" : "var(--danger)",
-                      emp.active ? "var(--success-bg)" : "var(--danger-bg)"
-                    )}>
-                      {emp.active ? "Active" : "Inactive"}
-                    </span>
-                  </td>
-                  <td style={s.td}>
-                    <button style={s.btnWarning} onClick={() => editEmployee(emp)}>Edit</button>
-                    <button style={s.btnDanger} onClick={() => deleteEmployee(emp.id, `${emp.firstName} ${emp.lastName}`)}>Delete</button>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+
+                    <td style={s.td}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <Avatar name={`${emp.firstName} ${emp.lastName}`} size={34} color={av.color} bg={av.bg} />
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: "13px", color: "var(--text-primary)" }}>
+                            {emp.firstName} {emp.lastName}
+                          </div>
+                          {emp.gender && (
+                            <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>{emp.gender}</div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+
+                    <td style={s.td}>
+                      <div style={{ fontSize: "12.5px", color: "var(--text-primary)" }}>{emp.email}</div>
+                      {emp.phone && <div style={{ fontSize: "11.5px", color: "var(--text-muted)" }}>{emp.phone}</div>}
+                    </td>
+
+                    <td style={s.td}>
+                      <span style={{
+                        fontSize: "12.5px", fontWeight: 500,
+                        color: "var(--text-primary)"
+                      }}>
+                        {emp.department || "—"}
+                      </span>
+                    </td>
+
+                    <td style={s.td}>
+                      <span style={{ fontSize: "12.5px", color: "var(--text-secondary)" }}>
+                        {emp.designation || "—"}
+                      </span>
+                    </td>
+
+                    <td style={s.td}>
+                      {emp.employmentType ? (
+                        <span style={s.badge(typeStyle.color, typeStyle.bg)}>
+                          {emp.employmentType.replace("_", " ")}
+                        </span>
+                      ) : "—"}
+                    </td>
+
+                    <td style={s.td}>
+                      <span style={{ fontWeight: 600, fontSize: "13px", color: "var(--text-primary)" }}>
+                        {emp.salary ? `$${emp.salary.toLocaleString()}` : "—"}
+                      </span>
+                    </td>
+
+                    <td style={s.td}>
+                      <span style={s.badge(
+                        emp.active ? "#059669" : "#dc2626",
+                        emp.active ? "#d1fae5" : "#fee2e2"
+                      )}>
+                        <span style={{
+                          width: "5px", height: "5px", borderRadius: "50%",
+                          background: emp.active ? "#059669" : "#dc2626",
+                          display: "inline-block", marginRight: "4px"
+                        }} />
+                        {emp.active ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+
+                    <td style={s.td}>
+                      <div style={{ display: "flex", gap: "6px" }}>
+                        <button style={s.btnWarning} onClick={() => editEmployee(emp)}
+                          onMouseEnter={e => { e.currentTarget.style.background = "#fef3c7"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = "#fffbeb"; e.currentTarget.style.transform = "translateY(0)"; }}>
+                          <RiEditLine size={13} /> Edit
+                        </button>
+                        <button style={s.btnDanger} onClick={() => deleteEmployee(emp.id, `${emp.firstName} ${emp.lastName}`)}
+                          onMouseEnter={e => { e.currentTarget.style.background = "#fee2e2"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = "#fff5f5"; e.currentTarget.style.transform = "translateY(0)"; }}>
+                          <RiDeleteBinLine size={13} /> Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
+
+        {filtered.length > 0 && (
+          <div style={{ marginTop: "12px", fontSize: "12px", color: "var(--text-muted)", textAlign: "right" }}>
+            Showing {filtered.length} of {employees.length} employees
+          </div>
+        )}
       </div>
     </MainLayout>
   );

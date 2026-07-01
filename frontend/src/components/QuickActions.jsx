@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useDomainNav } from "../context/RoleContext";
 import {
   RiUserAddLine, RiBuildingLine, RiTimeLine, RiCalendarCheckLine,
   RiBarChartLine, RiMoneyDollarCircleLine
@@ -14,7 +14,7 @@ const actions = [
 ];
 
 export default function QuickActions() {
-  const navigate = useNavigate();
+  const navigate = useDomainNav();
 
   return (
     <div style={{
