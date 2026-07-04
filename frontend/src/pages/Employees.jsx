@@ -14,7 +14,7 @@ import {
 } from "react-icons/ri";
 
 const emptyForm = {
-  employeeCode: "", firstName: "", lastName: "", email: "",
+  firstName: "", lastName: "", email: "",
   phone: "", gender: "", designation: "", salary: "",
   department: "", employmentType: ""
 };
@@ -343,6 +343,7 @@ function Employees() {
   const [errors, setErrors]         = useState({});
   const [showForm, setShowForm]     = useState(false);
   const [viewEmp, setViewEmp]       = useState(null);
+  const [nextCode, setNextCode]     = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkDept, setBulkDept]     = useState("");
   const [bulkManager, setBulkManager] = useState("");
@@ -371,7 +372,6 @@ function Employees() {
 
   const validate = () => {
     const e = {};
-    if (!form.employeeCode.trim())   e.employeeCode   = "Required";
     if (!form.firstName.trim())      e.firstName      = "Required";
     if (!form.lastName.trim())       e.lastName       = "Required";
     if (!form.email.trim())          e.email          = "Required";
@@ -390,12 +390,29 @@ function Employees() {
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }));
   };
 
-  const resetForm = () => { setForm(emptyForm); setEditingId(null); setErrors({}); setShowForm(false); };
+  const resetForm = () => { setForm(emptyForm); setEditingId(null); setErrors({}); setShowForm(false); setNextCode(""); };
+
+  const fetchNextCode = async () => {
+    try {
+      const res = await api.get("/employees/next-code");
+      setNextCode(res.data);
+    } catch { setNextCode("Auto Generated"); }
+  };
 
   const createEmployee = async () => {
     if (!validate()) return;
     try {
-      await api.post("/employees", { ...form, salary: form.salary ? Number(form.salary) : null });
+      await api.post("/employees", {
+        firstName:      form.firstName,
+        lastName:       form.lastName,
+        email:          form.email,
+        phone:          form.phone          || "",
+        gender:         form.gender         || "",
+        designation:    form.designation,
+        salary:         form.salary ? Number(form.salary) : null,
+        department:     form.department,
+        employmentType: form.employmentType,
+      });
       resetForm();
       fetchEmployees();
       showToast("Employee added successfully");
@@ -408,7 +425,7 @@ function Employees() {
   const editEmployee = (emp) => {
     setEditingId(emp.id);
     setForm({
-      employeeCode: emp.employeeCode || "", firstName: emp.firstName || "",
+      firstName: emp.firstName || "",
       lastName: emp.lastName || "",         email: emp.email || "",
       phone: emp.phone || "",               gender: emp.gender || "",
       designation: emp.designation || "",   salary: emp.salary ?? "",
@@ -422,7 +439,17 @@ function Employees() {
   const updateEmployee = async () => {
     if (!validate()) return;
     try {
-      await api.put(`/employees/${editingId}`, { ...form, salary: form.salary ? Number(form.salary) : null });
+      await api.put(`/employees/${editingId}`, {
+        firstName:      form.firstName,
+        lastName:       form.lastName,
+        email:          form.email,
+        phone:          form.phone          || "",
+        gender:         form.gender         || "",
+        designation:    form.designation,
+        salary:         form.salary ? Number(form.salary) : null,
+        department:     form.department,
+        employmentType: form.employmentType,
+      });
       resetForm();
       fetchEmployees();
       showToast("Employee updated successfully");
@@ -491,12 +518,24 @@ function Employees() {
     showToast(`${rows.length} employee(s) exported`);
   };
 
+  const toDto = (emp) => ({
+    firstName:      emp.firstName      || "",
+    lastName:       emp.lastName       || "",
+    email:          emp.email          || "",
+    phone:          emp.phone          || "",
+    gender:         emp.gender         || "",
+    designation:    emp.designation    || "",
+    salary:         emp.salary         ?? null,
+    department:     emp.department     || "",
+    employmentType: emp.employmentType || "",
+  });
+
   const bulkSetActive = async (active) => {
     const count = selectedIds.length;
     try {
       await Promise.all(selectedIds.map(id => {
         const emp = employees.find(e => e.id === id);
-        return api.put(`/employees/${id}`, { ...emp, active });
+        return api.put(`/employees/${id}`, toDto(emp));
       }));
       setSelectedIds([]);
       fetchEmployees();
@@ -510,7 +549,7 @@ function Employees() {
     try {
       await Promise.all(selectedIds.map(id => {
         const emp = employees.find(e => e.id === id);
-        return api.put(`/employees/${id}`, { ...emp, department: bulkDept });
+        return api.put(`/employees/${id}`, { ...toDto(emp), department: bulkDept });
       }));
       setSelectedIds([]); setShowBulkDeptModal(false); setBulkDept("");
       fetchEmployees();
@@ -524,7 +563,7 @@ function Employees() {
     try {
       await Promise.all(selectedIds.map(id => {
         const emp = employees.find(e => e.id === id);
-        return api.put(`/employees/${id}`, { ...emp, manager: bulkManager });
+        return api.put(`/employees/${id}`, toDto(emp));
       }));
       setSelectedIds([]); setShowBulkManagerModal(false); setBulkManager("");
       fetchEmployees();
@@ -553,7 +592,7 @@ function Employees() {
       >
         <button
           style={s.btnPrimary}
-          onClick={() => { resetForm(); setShowForm(true); }}
+          onClick={() => { resetForm(); setShowForm(true); fetchNextCode(); }}
           onMouseEnter={e => e.currentTarget.style.opacity = "0.88"}
           onMouseLeave={e => e.currentTarget.style.opacity = "1"}
         >
@@ -584,10 +623,33 @@ function Employees() {
           </SectionHeader>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "14px" }}>
-            <Field label="Employee Code *" error={errors.employeeCode}>
-              <input name="employeeCode" style={inputStyle("employeeCode")} placeholder="EMP001"
-                value={form.employeeCode} onChange={e => handleChange("employeeCode", e.target.value)}
-                onFocus={onFocus} onBlur={onBlur} />
+            <Field label="Employee Code">
+              <div style={{ position: "relative" }}>
+                <div style={{
+                  ...s.input,
+                  background: "linear-gradient(135deg, #f0f9ff, #e0f2fe)",
+                  border: "1.5px dashed #7dd3fc",
+                  color: "#0369a1",
+                  fontWeight: 700,
+                  fontFamily: "monospace",
+                  letterSpacing: "0.06em",
+                  fontSize: "13.5px",
+                  cursor: "not-allowed",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  paddingRight: "10px"
+                }}>
+                  <span>{editingId ? employees.find(e => e.id === editingId)?.employeeCode : (nextCode || "Generating…")}</span>
+                  <span style={{
+                    fontSize: "9.5px", fontWeight: 700, color: "#0891b2",
+                    background: "#cffafe", border: "1px solid #a5f3fc",
+                    padding: "2px 7px", borderRadius: "20px",
+                    letterSpacing: "0.05em", textTransform: "uppercase",
+                    fontFamily: "var(--font)"
+                  }}>Auto Generated</span>
+                </div>
+              </div>
             </Field>
             <Field label="First Name *" error={errors.firstName}>
               <input name="firstName" style={inputStyle("firstName")} placeholder="John"

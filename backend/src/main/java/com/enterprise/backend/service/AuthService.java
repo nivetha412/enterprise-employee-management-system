@@ -1,7 +1,9 @@
 package com.enterprise.backend.service;
 
 import com.enterprise.backend.dto.RegisterUserDto;
+import com.enterprise.backend.entity.Employee;
 import com.enterprise.backend.entity.User;
+import com.enterprise.backend.repository.EmployeeRepository;
 import com.enterprise.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,6 +19,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final EmployeeRepository employeeRepository;
 
     public void registerUser(RegisterUserDto dto) {
         
@@ -46,10 +49,15 @@ public class AuthService {
 
    String token = jwtService.generateToken(user.getEmail());
 
+   Long employeeId = employeeRepository.findByEmail(user.getEmail())
+           .map(Employee::getId)
+           .orElse(null);
+
 return new LoginResponseDto(
         token,
         user.getEmail(),
-        user.getRole()
+        user.getRole(),
+        employeeId
 );
 }
 }

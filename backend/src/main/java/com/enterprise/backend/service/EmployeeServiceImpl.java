@@ -16,16 +16,31 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     private final EmployeeRepository employeeRepository;
 
+    private String generateEmployeeCode() {
+        long seq = employeeRepository.findMaxEmpCodeSequence() + 1;
+        String code = String.format("EMP%03d", seq);
+        while (employeeRepository.existsByEmployeeCode(code)) {
+            seq++;
+            code = String.format("EMP%03d", seq);
+        }
+        return code;
+    }
+    @Override
+    public String generateNextCode() {
+        return generateEmployeeCode();
+    }
     @Override
     @Transactional
     public EmployeeResponseDto createEmployee(EmployeeRequestDto dto) {
 
-        if (employeeRepository.existsByEmployeeCode(dto.getEmployeeCode())) {
-            throw new RuntimeException("Employee code '" + dto.getEmployeeCode() + "' already exists");
+        // patch existing employees that have no code
+        for (Employee e : employeeRepository.findEmployeesWithoutCode()) {
+            e.setEmployeeCode(generateEmployeeCode());
+            employeeRepository.save(e);
         }
 
         Employee employee = Employee.builder()
-                .employeeCode(dto.getEmployeeCode())
+                .employeeCode(generateEmployeeCode())
                 .firstName(dto.getFirstName())
                 .lastName(dto.getLastName())
                 .email(dto.getEmail())
@@ -64,11 +79,6 @@ public class EmployeeServiceImpl implements EmployeeService {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Employee Not Found"));
 
-        if (employeeRepository.existsByEmployeeCodeAndIdNot(dto.getEmployeeCode(), id)) {
-            throw new RuntimeException("Employee code '" + dto.getEmployeeCode() + "' is already used by another employee");
-        }
-
-        employee.setEmployeeCode(dto.getEmployeeCode());
         employee.setFirstName(dto.getFirstName());
         employee.setLastName(dto.getLastName());
         employee.setEmail(dto.getEmail());

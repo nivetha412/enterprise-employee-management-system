@@ -1,12 +1,14 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 
-import Login        from "./pages/Login";
-import Dashboard    from "./pages/Dashboard";
-import Employees    from "./pages/Employees";
-import Departments  from "./pages/Departments";
-import Attendance   from "./pages/Attendance";
-import Leave        from "./pages/Leave";
-import ProtectedRoute from "./components/ProtectedRoute";
+import Login                from "./pages/Login";
+import Dashboard            from "./pages/Dashboard";
+import EmployeeDashboard    from "./pages/employee/EmployeeDashboard";
+import EmployeeAttendance   from "./pages/employee/EmployeeAttendance";
+import Employees            from "./pages/Employees";
+import Departments          from "./pages/Departments";
+import Attendance           from "./pages/Attendance";
+import Leave                from "./pages/Leave";
+import ProtectedRoute       from "./components/ProtectedRoute";
 
 function App() {
   return (
@@ -20,13 +22,13 @@ function App() {
 
         <Route path="dashboard" element={
           <ProtectedRoute allowedRoles={["ADMIN", "HR", "EMPLOYEE"]}>
-            <Dashboard />
+            <DashboardRouter />
           </ProtectedRoute>
         } />
 
         <Route path="attendance" element={
           <ProtectedRoute allowedRoles={["ADMIN", "HR", "EMPLOYEE"]}>
-            <Attendance />
+            <AttendanceRouter />
           </ProtectedRoute>
         } />
 
@@ -61,6 +63,18 @@ function App() {
 
     </Routes>
   );
+}
+
+/** Renders the correct dashboard based on the logged-in role */
+function DashboardRouter() {
+  const role = localStorage.getItem("role");
+  return role === "EMPLOYEE" ? <EmployeeDashboard /> : <Dashboard />;
+}
+
+/** Renders the correct attendance page based on role */
+function AttendanceRouter() {
+  const role = localStorage.getItem("role");
+  return role === "EMPLOYEE" ? <EmployeeAttendance /> : <Attendance />;
 }
 
 /** Redirects /:domain → /:domain/dashboard */

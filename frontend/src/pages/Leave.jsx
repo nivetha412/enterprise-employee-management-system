@@ -14,19 +14,21 @@ const STATUS_CFG = {
 };
 
 const TYPE_CFG = {
-  ANNUAL:   { color: "#1e40af", bg: "#dbeafe" },
-  SICK:     { color: "#dc2626", bg: "#fee2e2" },
-  CASUAL:   { color: "#d97706", bg: "#fef3c7" },
-  MATERNITY:{ color: "#7c3aed", bg: "#ede9fe" },
-  UNPAID:   { color: "#64748b", bg: "#f1f5f9" },
+  CASUAL_LEAVE:    { color: "#d97706", bg: "#fef3c7" },
+  SICK_LEAVE:      { color: "#dc2626", bg: "#fee2e2" },
+  EARNED_LEAVE:    { color: "#1e40af", bg: "#dbeafe" },
+  COMP_OFF:        { color: "#7c3aed", bg: "#ede9fe" },
+  WORK_FROM_HOME:  { color: "#0891b2", bg: "#cffafe" },
+  LOSS_OF_PAY:     { color: "#64748b", bg: "#f1f5f9" },
 };
 
-const LEAVE_TYPES = ["ANNUAL", "SICK", "CASUAL", "MATERNITY", "UNPAID"];
+const LEAVE_TYPES = ["CASUAL_LEAVE", "SICK_LEAVE", "EARNED_LEAVE", "COMP_OFF", "WORK_FROM_HOME", "LOSS_OF_PAY"];
+const PRIORITIES  = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
 function Leave() {
   const [leaves, setLeaves]       = useState([]);
   const [employees, setEmployees] = useState([]);
-  const [form, setForm]           = useState({ employeeId: "", leaveType: "ANNUAL", startDate: "", endDate: "", reason: "" });
+  const [form, setForm]           = useState({ employeeId: "", leaveType: "CASUAL_LEAVE", startDate: "", endDate: "", reason: "", priority: "MEDIUM", backupEmployeeId: "" });
   const [loading, setLoading]     = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [filterStatus, setFilterStatus] = useState("");
@@ -44,7 +46,7 @@ function Leave() {
   const fetchLeaves = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/leaves");
+      const res = await api.get("/leave");
       setLeaves(res.data);
     } catch (e) {
       console.error(e);
@@ -69,14 +71,16 @@ function Leave() {
     }
     setSubmitting(true);
     try {
-      await api.post("/leaves", {
-        employeeId: Number(form.employeeId),
-        leaveType:  form.leaveType,
-        startDate:  form.startDate,
-        endDate:    form.endDate,
-        reason:     form.reason,
+      await api.post("/leave/apply", {
+        employeeId:       Number(form.employeeId),
+        leaveType:        form.leaveType,
+        startDate:        form.startDate,
+        endDate:          form.endDate,
+        reason:           form.reason,
+        priority:         form.priority,
+        backupEmployeeId: Number(form.backupEmployeeId),
       });
-      setForm({ employeeId: "", leaveType: "ANNUAL", startDate: "", endDate: "", reason: "" });
+      setForm({ employeeId: "", leaveType: "CASUAL_LEAVE", startDate: "", endDate: "", reason: "", priority: "MEDIUM", backupEmployeeId: "" });
       fetchLeaves();
       showToast("Leave request submitted successfully");
     } catch (e) {
@@ -88,8 +92,18 @@ function Leave() {
   };
 
   const updateStatus = async (id, status) => {
+    const lv = leaves.find(l => l.id === id);
     try {
-      await api.put(`/leaves/${id}/status`, { status });
+      await api.put(`/leave/${id}`, {
+        employeeId:       lv.employeeId,
+        leaveType:        lv.leaveType,
+        startDate:        lv.startDate,
+        endDate:          lv.endDate,
+        reason:           lv.reason,
+        priority:         lv.priority,
+        backupEmployeeId: lv.backupEmployeeId,
+        status,
+      });
       fetchLeaves();
       showToast(`Leave ${status.toLowerCase()} successfully`);
     } catch (e) {
@@ -101,7 +115,7 @@ function Leave() {
   const deleteLeave = async (id) => {
     if (!window.confirm("Delete this leave request?")) return;
     try {
-      await api.delete(`/leaves/${id}`);
+      await api.delete(`/leave/${id}`);
       fetchLeaves();
       showToast("Leave request deleted");
     } catch (e) {
@@ -188,7 +202,7 @@ function Leave() {
                 onChange={e => setForm(f => ({ ...f, leaveType: e.target.value }))}
                 onFocus={onFocus} onBlur={onBlur}
               >
-                {LEAVE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                {LEAVE_TYPES.map(t => <option key={t} value={t}>{t.replace(/_/g, " ")}</option>)}
               </select>
             </div>
 
@@ -218,6 +232,42 @@ function Leave() {
                 value={form.reason}
                 onChange={e => setForm(f => ({ ...f, reason: e.target.value }))}
                 onFocus={onFocus} onBlur={onBlur} />
+            </div>
+
+            <div>
+              <label style={s.label}>Priority</label>
+              <select
+                style={{ ...s.select, width: "100%" }}
+                value={form.priority}
+                onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}
+                onFocus={onFocus} onBlur={onBlur}
+              >
+                {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label style={s.label}>Backup Employee *</label>
+              <div style={{ position: "relative" }}>
+                <RiUserLine size={14} color="var(--text-muted)"
+                  style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+                <select
+                  style={{ ...s.select, width: "100%", paddingLeft: "30px" }}
+                  value={form.backupEmployeeId}
+                  onChange={e => setForm(f => ({ ...f, backupEmployeeId: e.target.value }))}
+                  onFocus={onFocus} onBlur={onBlur}
+                  required
+                >
+                  <option value="">— Select Backup —</option>
+                  {employees
+                    .filter(emp => String(emp.id) !== String(form.employeeId))
+                    .map(emp => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.firstName} {emp.lastName}
+                      </option>
+                    ))}
+                </select>
+              </div>
             </div>
           </div>
 
@@ -259,7 +309,7 @@ function Leave() {
           <select style={{ ...s.select, minWidth: "130px", fontSize: "13px" }}
             value={filterType} onChange={e => setFilterType(e.target.value)}>
             <option value="">All Types</option>
-            {LEAVE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            {LEAVE_TYPES.map(t => <option key={t} value={t}>{t.replace(/_/g, " ")}</option>)}
           </select>
         </SectionHeader>
 
@@ -326,7 +376,7 @@ function Leave() {
                     </td>
 
                     <td style={s.td}>
-                      <span style={s.badge(tc.color, tc.bg)}>{lv.leaveType}</span>
+                      <span style={s.badge(tc.color, tc.bg)}>{lv.leaveType.replace(/_/g, " ")}</span>
                     </td>
 
                     <td style={s.td}>

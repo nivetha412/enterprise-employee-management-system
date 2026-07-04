@@ -10,17 +10,55 @@ import {
 } from "react-icons/ri";
 
 function Attendance() {
+  const role = localStorage.getItem("role");
+  const isEmployee = role === "EMPLOYEE";
+
   const [attendanceList, setAttendanceList] = useState([]);
   const [employees, setEmployees]           = useState([]);
   const [employeeId, setEmployeeId]         = useState("");
+  const [myProfile, setMyProfile]           = useState(null);
   const [loading, setLoading]               = useState(true);
   const [toast, setToast]                   = useState({ message: "", type: "success" });
 
-  useEffect(() => { fetchAttendance(); fetchEmployees(); }, []);
+  useEffect(() => {
+    if (isEmployee) {
+      fetchMyProfile();
+    } else {
+      fetchAttendance();
+      fetchEmployees();
+    }
+  }, []);
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast({ message: "", type: "success" }), 3000);
+  };
+
+  const fetchMyProfile = async () => {
+    try {
+      const empId = localStorage.getItem("employeeId");
+      if (!empId) { showToast("Employee profile not linked to your account", "error"); setLoading(false); return; }
+      const res = await api.get(`/employees/${empId}`);
+      setMyProfile(res.data);
+      await fetchAttendanceForEmployee(res.data.id);
+    } catch (error) {
+      console.error(error);
+      showToast("Failed to load your profile", "error");
+      setLoading(false);
+    }
+  };
+
+  const fetchAttendanceForEmployee = async (empId) => {
+    setLoading(true);
+    try {
+      const res = await api.get(`/attendance/employee/${empId}`);
+      setAttendanceList(res.data);
+    } catch (error) {
+      console.error(error);
+      showToast("Failed to load attendance records", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fetchAttendance = async () => {
@@ -46,10 +84,11 @@ function Attendance() {
   };
 
   const checkIn = async () => {
-    if (!employeeId) { showToast("Please select an employee", "error"); return; }
+    const targetId = isEmployee ? myProfile?.id : employeeId;
+    if (!targetId) { showToast("Please select an employee", "error"); return; }
     try {
-      await api.post("/attendance/checkin", { employeeId: Number(employeeId) });
-      fetchAttendance();
+      await api.post("/attendance/checkin", { employeeId: Number(targetId) });
+      isEmployee ? fetchAttendanceForEmployee(myProfile.id) : fetchAttendance();
       showToast("Check-in recorded successfully");
     } catch (error) {
       console.error(error);
@@ -58,10 +97,11 @@ function Attendance() {
   };
 
   const checkOut = async () => {
-    if (!employeeId) { showToast("Please select an employee", "error"); return; }
+    const targetId = isEmployee ? myProfile?.id : employeeId;
+    if (!targetId) { showToast("Please select an employee", "error"); return; }
     try {
-      await api.post("/attendance/checkout", { employeeId: Number(employeeId) });
-      fetchAttendance();
+      await api.post("/attendance/checkout", { employeeId: Number(targetId) });
+      isEmployee ? fetchAttendanceForEmployee(myProfile.id) : fetchAttendance();
       showToast("Check-out recorded successfully");
     } catch (error) {
       console.error(error);
@@ -73,7 +113,7 @@ function Attendance() {
     if (!window.confirm("Delete this attendance record?")) return;
     try {
       await api.delete(`/attendance/${id}`);
-      fetchAttendance();
+      isEmployee ? fetchAttendanceForEmployee(myProfile.id) : fetchAttendance();
       showToast("Record deleted");
     } catch (error) {
       console.error(error);
@@ -81,19 +121,17 @@ function Attendance() {
     }
   };
 
-  // Derived stats
   const presentCount = attendanceList.filter(a => a.status === "PRESENT").length;
   const absentCount  = attendanceList.filter(a => a.status === "ABSENT").length;
   const lateCount    = attendanceList.filter(a => a.lateArrival).length;
   const avgHours     = attendanceList.length
     ? (attendanceList.reduce((sum, a) => sum + (a.workingHours || 0), 0) / attendanceList.length).toFixed(1)
     : "0.0";
-
   const attendanceRate = attendanceList.length
     ? Math.round((presentCount / attendanceList.length) * 100)
     : 0;
 
-  const selectedEmp = employees.find(e => String(e.id) === String(employeeId));
+  const selectedEmp = isEmployee ? myProfile : employees.find(e => String(e.id) === String(employeeId));
 
   const onFocus = e => { e.target.style.borderColor = "#3b82f6"; e.target.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.12)"; };
   const onBlur  = e => { e.target.style.borderColor = "var(--border)"; e.target.style.boxShadow = "none"; };
@@ -102,11 +140,10 @@ function Attendance() {
     <MainLayout>
       <Toast message={toast.message} type={toast.type} />
 
-      {/* Page Header */}
       <PageHeader
         icon={<RiTimeLine size={22} color="#fff" />}
         title="Attendance Tracker"
-        subtitle="Record and monitor employee check-ins and check-outs"
+        subtitle={isEmployee ? "View and record your attendance" : "Record and monitor employee check-ins and check-outs"}
         meta={
           <div style={{
             display: "flex", alignItems: "center", gap: "6px",
@@ -126,7 +163,6 @@ function Attendance() {
         <StatCard label="Absent"         value={absentCount}           color="#dc2626" bg="#fee2e2" icon={<RiCloseCircleLine color="#dc2626" size={18} />} />
         <StatCard label="Late Arrivals"  value={lateCount}             color="#d97706" bg="#fef3c7" icon={<RiAlarmWarningLine color="#d97706" size={18} />} />
 
-        {/* Attendance Rate card — custom with progress bar */}
         <div style={{
           background: "#fff", borderRadius: "12px", padding: "14px 18px",
           border: "1px solid var(--border)", boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
@@ -153,7 +189,6 @@ function Attendance() {
           </div>
         </div>
 
-        {/* Avg Hours card */}
         <div style={{
           background: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)",
           borderRadius: "12px", padding: "14px 18px",
@@ -180,31 +215,33 @@ function Attendance() {
 
         <div style={{ display: "flex", gap: "16px", alignItems: "stretch", flexWrap: "wrap" }}>
 
-          {/* Employee selector column */}
-          <div style={{ flex: "1 1 260px" }}>
-            <label style={s.label}>Select Employee</label>
-            <div style={{ position: "relative" }}>
-              <RiUserLine size={15} color="var(--text-muted)"
-                style={{ position: "absolute", left: "11px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
-              <RiArrowDownSLine size={15} color="var(--text-muted)"
-                style={{ position: "absolute", right: "11px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
-              <select
-                style={{ ...s.select, width: "100%", paddingLeft: "32px", paddingRight: "32px", appearance: "none" }}
-                value={employeeId}
-                onChange={e => setEmployeeId(e.target.value)}
-                onFocus={onFocus} onBlur={onBlur}
-              >
-                <option value="">— Choose Employee —</option>
-                {employees.map(emp => (
-                  <option key={emp.id} value={emp.id}>
-                    {emp.firstName} {emp.lastName} ({emp.employeeCode || `#${emp.id}`})
-                  </option>
-                ))}
-              </select>
+          {/* Employee selector — Admin/HR only */}
+          {!isEmployee && (
+            <div style={{ flex: "1 1 260px" }}>
+              <label style={s.label}>Select Employee</label>
+              <div style={{ position: "relative" }}>
+                <RiUserLine size={15} color="var(--text-muted)"
+                  style={{ position: "absolute", left: "11px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+                <RiArrowDownSLine size={15} color="var(--text-muted)"
+                  style={{ position: "absolute", right: "11px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+                <select
+                  style={{ ...s.select, width: "100%", paddingLeft: "32px", paddingRight: "32px", appearance: "none" }}
+                  value={employeeId}
+                  onChange={e => setEmployeeId(e.target.value)}
+                  onFocus={onFocus} onBlur={onBlur}
+                >
+                  <option value="">— Choose Employee —</option>
+                  {employees.map(emp => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.firstName} {emp.lastName} ({emp.employeeCode || `#${emp.id}`})
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Selected employee preview */}
+          {/* Employee preview */}
           {selectedEmp ? (
             <div style={{
               display: "flex", alignItems: "center", gap: "12px",
@@ -322,7 +359,7 @@ function Attendance() {
                   <EmptyState icon="🕐" title="No attendance records" subtitle="Use the form above to record check-ins" />
                 </td></tr>
               ) : attendanceList.map((att, idx) => {
-                const emp = employees.find(e => e.id === att.employeeId);
+                const emp = isEmployee ? myProfile : employees.find(e => e.id === att.employeeId);
                 const isPresent = att.status === "PRESENT";
                 const hoursOk   = att.workingHours >= 8;
                 return (
@@ -331,7 +368,6 @@ function Attendance() {
                     onMouseEnter={e => e.currentTarget.style.background = "#f8faff"}
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
 
-                    {/* Row number */}
                     <td style={{ ...s.td, width: "44px" }}>
                       <span style={{
                         fontWeight: 700, fontSize: "11px", color: "var(--text-muted)",
@@ -339,7 +375,6 @@ function Attendance() {
                       }}>{idx + 1}</span>
                     </td>
 
-                    {/* Employee */}
                     <td style={s.td}>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                         {emp ? (
@@ -370,7 +405,6 @@ function Attendance() {
                       </div>
                     </td>
 
-                    {/* Date */}
                     <td style={s.td}>
                       <div style={{
                         display: "inline-flex", alignItems: "center", gap: "5px",
@@ -384,7 +418,6 @@ function Attendance() {
                       </div>
                     </td>
 
-                    {/* Check In */}
                     <td style={s.td}>
                       {att.checkInTime ? (
                         <span style={{
@@ -400,7 +433,6 @@ function Attendance() {
                       )}
                     </td>
 
-                    {/* Check Out */}
                     <td style={s.td}>
                       {att.checkOutTime ? (
                         <span style={{
@@ -416,15 +448,11 @@ function Attendance() {
                       )}
                     </td>
 
-                    {/* Hours with mini bar */}
                     <td style={{ ...s.td, minWidth: "90px" }}>
                       {att.workingHours ? (
                         <div>
                           <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
-                            <span style={{
-                              fontWeight: 700, fontSize: "13px",
-                              color: hoursOk ? "#059669" : "#d97706"
-                            }}>
+                            <span style={{ fontWeight: 700, fontSize: "13px", color: hoursOk ? "#059669" : "#d97706" }}>
                               {att.workingHours.toFixed(1)}h
                             </span>
                             <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>/ 8h</span>
@@ -443,13 +471,9 @@ function Attendance() {
                       )}
                     </td>
 
-                    {/* Status */}
                     <td style={s.td}>
                       <span style={{
-                        ...s.badge(
-                          isPresent ? "#059669" : "#dc2626",
-                          isPresent ? "#d1fae5" : "#fee2e2"
-                        ),
+                        ...s.badge(isPresent ? "#059669" : "#dc2626", isPresent ? "#d1fae5" : "#fee2e2"),
                         border: `1px solid ${isPresent ? "#a7f3d0" : "#fecaca"}`
                       }}>
                         <span style={{
@@ -461,20 +485,15 @@ function Attendance() {
                       </span>
                     </td>
 
-                    {/* Punctuality */}
                     <td style={s.td}>
                       <span style={{
-                        ...s.badge(
-                          att.lateArrival ? "#d97706" : "#059669",
-                          att.lateArrival ? "#fef3c7" : "#d1fae5"
-                        ),
+                        ...s.badge(att.lateArrival ? "#d97706" : "#059669", att.lateArrival ? "#fef3c7" : "#d1fae5"),
                         border: `1px solid ${att.lateArrival ? "#fde68a" : "#a7f3d0"}`
                       }}>
                         {att.lateArrival ? "⚠ Late" : "✓ On Time"}
                       </span>
                     </td>
 
-                    {/* Delete */}
                     <td style={{ ...s.td, textAlign: "center" }}>
                       <button
                         style={{

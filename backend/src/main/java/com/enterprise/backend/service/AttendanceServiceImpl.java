@@ -79,6 +79,14 @@ public class AttendanceServiceImpl implements AttendanceService {
     }
 
     @Override
+    public List<AttendanceResponseDto> getAttendanceByEmployeeId(Long employeeId) {
+        return attendanceRepository.findByEmployeeId(employeeId)
+                .stream()
+                .map(this::mapToDto)
+                .toList();
+    }
+
+    @Override
     public void deleteAttendance(Long id) {
 
         Attendance attendance =

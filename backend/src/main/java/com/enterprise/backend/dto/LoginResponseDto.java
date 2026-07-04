@@ -14,4 +14,6 @@ public class LoginResponseDto {
 
     private Role role;
 
+    private Long employeeId;
+
 }

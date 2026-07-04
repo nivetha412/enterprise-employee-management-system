@@ -35,6 +35,13 @@ public class AttendanceController {
         return attendanceService.getAllAttendance();
     }
 
+    @GetMapping("/employee/{employeeId}")
+    public List<AttendanceResponseDto> getAttendanceByEmployee(
+            @PathVariable Long employeeId) {
+
+        return attendanceService.getAttendanceByEmployeeId(employeeId);
+    }
+
     @DeleteMapping("/{id}")
     public String deleteAttendance(
             @PathVariable Long id) {

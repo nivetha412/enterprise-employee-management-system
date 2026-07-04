@@ -21,6 +21,9 @@ function Login() {
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("email", response.data.email);
       localStorage.setItem("role", response.data.role);
+      if (response.data.employeeId) {
+        localStorage.setItem("employeeId", response.data.employeeId);
+      }
       const domain = ROLE_TO_DOMAIN[response.data.role] || "employee";
       navigate(`/${domain}/dashboard`);
     } catch (error) {
