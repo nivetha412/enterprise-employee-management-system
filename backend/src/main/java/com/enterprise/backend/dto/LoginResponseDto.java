@@ -1,6 +1,5 @@
 package com.enterprise.backend.dto;
 
-import com.enterprise.backend.enums.Role;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -12,7 +11,7 @@ public class LoginResponseDto {
 
     private String email;
 
-    private Role role;
+    private String role;
 
     private Long employeeId;
 

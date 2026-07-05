@@ -9,4 +9,7 @@ public class LoginRequestDto {
 
     private String password;
 
+    // Used when an employee logs in with their employee code
+    private String employeeCode;
+
 }

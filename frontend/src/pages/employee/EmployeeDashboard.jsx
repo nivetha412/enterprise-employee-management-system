@@ -9,6 +9,7 @@ import EmpRecentActivities   from "../../components/employee/EmpRecentActivities
 import EmpUpcomingEvents     from "../../components/employee/EmpUpcomingEvents";
 import EmpAnnouncements      from "../../components/employee/EmpAnnouncements";
 import EmpPerformanceSummary from "../../components/employee/EmpPerformanceSummary";
+import { EmployeeProvider }  from "../../context/EmployeeContext";
 
 const row = (cols, extra = {}) => ({
   display: "grid",
@@ -21,34 +22,30 @@ const row = (cols, extra = {}) => ({
 
 export default function EmployeeDashboard() {
   return (
-    <MainLayout>
+    <EmployeeProvider>
+      <MainLayout>
 
-      {/* Hero Welcome Banner */}
-      <EmpWelcomeBanner />
+        <EmpWelcomeBanner />
+        <EmpQuickActions />
 
-      {/* Quick Actions — full width */}
-      <EmpQuickActions />
+        <div className="emp-grid-3" style={row("repeat(3, 1fr)")}>
+          <EmpProfileSummary />
+          <EmpAttendanceOverview />
+          <EmpLeaveOverview />
+        </div>
 
-      {/* Row 1: Profile | Attendance | Leave */}
-      <div className="emp-grid-3" style={row("repeat(3, 1fr)")}>
-        <EmpProfileSummary />
-        <EmpAttendanceOverview />
-        <EmpLeaveOverview />
-      </div>
+        <div className="emp-grid-2" style={row("1fr 1.7fr")}>
+          <EmpMyStats />
+          <EmpRecentActivities />
+        </div>
 
-      {/* Row 2: My Stats | Recent Activities */}
-      <div className="emp-grid-2" style={row("1fr 1.7fr")}>
-        <EmpMyStats />
-        <EmpRecentActivities />
-      </div>
+        <div className="emp-grid-3" style={row("repeat(3, 1fr)", { marginBottom: "8px" })}>
+          <EmpUpcomingEvents />
+          <EmpAnnouncements />
+          <EmpPerformanceSummary />
+        </div>
 
-      {/* Row 3: Upcoming Events | Announcements | Performance + Calendar */}
-      <div className="emp-grid-3" style={row("repeat(3, 1fr)", { marginBottom: "8px" })}>
-        <EmpUpcomingEvents />
-        <EmpAnnouncements />
-        <EmpPerformanceSummary />
-      </div>
-
-    </MainLayout>
+      </MainLayout>
+    </EmployeeProvider>
   );
 }

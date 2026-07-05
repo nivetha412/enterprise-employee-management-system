@@ -1,27 +1,5 @@
 import { RiAwardLine, RiCalendarLine, RiProjectorLine, RiStarLine } from "react-icons/ri";
-
-const STATS = [
-  {
-    icon: RiAwardLine, label: "Years in Company", value: "3.5", unit: "years",
-    color: "#1e40af", bg: "linear-gradient(135deg,#eff6ff,#dbeafe)",
-    border: "#93c5fd", trend: "+0.5 this year", trendUp: true,
-  },
-  {
-    icon: RiCalendarLine, label: "Total Leaves Taken", value: "8", unit: "days",
-    color: "#7c3aed", bg: "linear-gradient(135deg,#f5f3ff,#ede9fe)",
-    border: "#c4b5fd", trend: "3 remaining", trendUp: null,
-  },
-  {
-    icon: RiProjectorLine, label: "Projects Assigned", value: "4", unit: "active",
-    color: "#0891b2", bg: "linear-gradient(135deg,#ecfeff,#cffafe)",
-    border: "#67e8f9", trend: "2 completed", trendUp: true,
-  },
-  {
-    icon: RiStarLine, label: "Performance Rating", value: "4.2", unit: "out of 5.0",
-    color: "#d97706", bg: "linear-gradient(135deg,#fffbeb,#fef3c7)",
-    border: "#fcd34d", trend: "↑ from 3.9", trendUp: true,
-  },
-];
+import { useEmployee } from "../../hooks/useEmployee";
 
 function StarBar({ rating }) {
   return (
@@ -37,7 +15,37 @@ function StarBar({ rating }) {
   );
 }
 
+function yearsInCompany(dob) {
+  // Use joiningDate if available; otherwise show "—"
+  return "—";
+}
+
 export default function EmpMyStats() {
+  const { emp, loading } = useEmployee();
+
+  const stats = [
+    {
+      icon: RiAwardLine, label: "Employee Code", value: loading ? "…" : (emp?.employeeCode || "—"), unit: "ID",
+      color: "#1e40af", bg: "linear-gradient(135deg,#eff6ff,#dbeafe)",
+      border: "#93c5fd", trend: null, trendUp: null,
+    },
+    {
+      icon: RiCalendarLine, label: "Department", value: loading ? "…" : (emp?.department || "—"), unit: "team",
+      color: "#7c3aed", bg: "linear-gradient(135deg,#f5f3ff,#ede9fe)",
+      border: "#c4b5fd", trend: null, trendUp: null,
+    },
+    {
+      icon: RiProjectorLine, label: "Designation", value: loading ? "…" : (emp?.designation || "—"), unit: "role",
+      color: "#0891b2", bg: "linear-gradient(135deg,#ecfeff,#cffafe)",
+      border: "#67e8f9", trend: null, trendUp: null,
+    },
+    {
+      icon: RiStarLine, label: "Employment Type", value: loading ? "…" : (emp?.employmentType || "—"), unit: "contract",
+      color: "#d97706", bg: "linear-gradient(135deg,#fffbeb,#fef3c7)",
+      border: "#fcd34d", trend: null, trendUp: null,
+    },
+  ];
+
   return (
     <div style={{
       background: "#fff", borderRadius: "16px", padding: "20px 22px",
@@ -50,15 +58,14 @@ export default function EmpMyStats() {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-        {STATS.map(({ icon: Icon, label, value, unit, color, bg, border, trend, trendUp }) => (
+        {stats.map(({ icon: Icon, label, value, unit, color, bg, border, trend, trendUp }) => (
           <div key={label} style={{
             background: bg, borderRadius: "14px", padding: "16px",
             border: `1px solid ${border}60`,
-            transition: "transform 0.2s, box-shadow 0.2s",
-            cursor: "default",
+            transition: "transform 0.2s, box-shadow 0.2s", cursor: "default",
           }}
             onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = `0 8px 24px ${color}20`; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)";    e.currentTarget.style.boxShadow = "none"; }}
           >
             <div style={{
               width: "38px", height: "38px", borderRadius: "10px",
@@ -68,10 +75,9 @@ export default function EmpMyStats() {
             }}>
               <Icon size={19} color={color} />
             </div>
-            <div style={{ fontSize: "26px", fontWeight: 800, color, lineHeight: 1, letterSpacing: "-0.03em" }}>{value}</div>
+            <div style={{ fontSize: "15px", fontWeight: 800, color, lineHeight: 1.2, letterSpacing: "-0.01em", wordBreak: "break-word" }}>{value}</div>
             <div style={{ fontSize: "10px", color: color + "90", fontWeight: 600, marginTop: "2px" }}>{unit}</div>
             <div style={{ fontSize: "11px", color: "#475569", marginTop: "6px", fontWeight: 600 }}>{label}</div>
-            {label === "Performance Rating" && <StarBar rating={parseFloat(value)} />}
             {trend && (
               <div style={{
                 marginTop: "8px", fontSize: "10px", fontWeight: 700,

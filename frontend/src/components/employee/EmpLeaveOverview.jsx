@@ -1,21 +1,43 @@
+import { useState, useEffect } from "react";
 import { RiCalendarCheckLine, RiTimeLine, RiCheckLine, RiCloseLine, RiAddLine } from "react-icons/ri";
 import { useDomainNav } from "../../context/RoleContext";
+import { useEmployee } from "../../hooks/useEmployee";
+import api from "../../services/api";
 
-const LEAVE_STATS = [
-  { label: "Balance",  value: "12", unit: "days",  color: "#1e40af", bg: "#eff6ff",  border: "#93c5fd", icon: RiCalendarCheckLine },
-  { label: "Pending",  value: "2",  unit: "awaiting", color: "#d97706", bg: "#fffbeb",  border: "#fcd34d", icon: RiTimeLine },
-  { label: "Approved", value: "8",  unit: "days",  color: "#059669", bg: "#ecfdf5",  border: "#6ee7b7", icon: RiCheckLine },
-  { label: "Rejected", value: "1",  unit: "day",   color: "#dc2626", bg: "#fef2f2",  border: "#fca5a5", icon: RiCloseLine },
-];
-
-const LEAVE_TYPES = [
-  { type: "Annual Leave",  used: 5,  total: 15, color: "#3b82f6", bg: "#eff6ff" },
-  { type: "Sick Leave",    used: 2,  total: 10, color: "#10b981", bg: "#ecfdf5" },
-  { type: "Casual Leave",  used: 1,  total: 5,  color: "#8b5cf6", bg: "#f5f3ff" },
+const LEAVE_TYPES_META = [
+  { type: "Annual Leave", key: "annual", total: 15, color: "#3b82f6", bg: "#eff6ff" },
+  { type: "Sick Leave",   key: "sick",   total: 10, color: "#10b981", bg: "#ecfdf5" },
+  { type: "Casual Leave", key: "casual", total: 5,  color: "#8b5cf6", bg: "#f5f3ff" },
 ];
 
 export default function EmpLeaveOverview() {
-  const navigate = useDomainNav();
+  const navigate    = useDomainNav();
+  const { emp }     = useEmployee();
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    if (!emp?.id) return;
+    api.get(`/leaves/employee/${emp.id}/summary`)
+      .then(res => setData(res.data))
+      .catch(() => setData(null));
+  }, [emp?.id]);
+
+  const balance  = data?.balance  ?? 0;
+  const pending  = data?.pending  ?? 0;
+  const approved = data?.approved ?? 0;
+  const rejected = data?.rejected ?? 0;
+
+  const LEAVE_STATS = [
+    { label: "Balance",  value: balance,  unit: "days",     color: "#1e40af", bg: "#eff6ff", border: "#93c5fd", icon: RiCalendarCheckLine },
+    { label: "Pending",  value: pending,  unit: "awaiting", color: "#d97706", bg: "#fffbeb", border: "#fcd34d", icon: RiTimeLine },
+    { label: "Approved", value: approved, unit: "days",     color: "#059669", bg: "#ecfdf5", border: "#6ee7b7", icon: RiCheckLine },
+    { label: "Rejected", value: rejected, unit: "day",      color: "#dc2626", bg: "#fef2f2", border: "#fca5a5", icon: RiCloseLine },
+  ];
+
+  const leaveTypes = LEAVE_TYPES_META.map(lt => ({
+    ...lt,
+    used: data?.breakdown?.[lt.key] ?? 0,
+  }));
 
   return (
     <div style={{
@@ -44,7 +66,7 @@ export default function EmpLeaveOverview() {
             transition: "all 0.2s",
           }}
           onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 6px 16px rgba(37,99,235,0.4)"; }}
-          onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(37,99,235,0.3)"; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)";    e.currentTarget.style.boxShadow = "0 4px 12px rgba(37,99,235,0.3)"; }}
         >
           <RiAddLine size={13} /> Apply Leave
         </button>
@@ -57,18 +79,13 @@ export default function EmpLeaveOverview() {
             <div key={label} style={{
               background: bg, borderRadius: "12px", padding: "12px 14px",
               border: `1px solid ${border}50`,
-              transition: "transform 0.15s, box-shadow 0.15s",
-              cursor: "default",
+              transition: "transform 0.15s, box-shadow 0.15s", cursor: "default",
             }}
               onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 6px 20px ${color}20`; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)";    e.currentTarget.style.boxShadow = "none"; }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-                <div style={{
-                  width: "24px", height: "24px", borderRadius: "6px",
-                  background: color + "20",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}>
+                <div style={{ width: "24px", height: "24px", borderRadius: "6px", background: color + "20", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Icon size={13} color={color} />
                 </div>
                 <span style={{ fontSize: "10px", color, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</span>
@@ -84,7 +101,7 @@ export default function EmpLeaveOverview() {
           <div style={{ fontSize: "10.5px", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "12px" }}>
             Leave Breakdown
           </div>
-          {LEAVE_TYPES.map(({ type, used, total, color, bg }) => (
+          {leaveTypes.map(({ type, used, total, color, bg }) => (
             <div key={type} style={{ marginBottom: "12px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
@@ -99,7 +116,7 @@ export default function EmpLeaveOverview() {
               <div style={{ height: "6px", borderRadius: "99px", background: "#f1f5f9", overflow: "hidden" }}>
                 <div style={{
                   height: "100%", borderRadius: "99px",
-                  width: `${(used / total) * 100}%`,
+                  width: `${Math.min((used / total) * 100, 100)}%`,
                   background: `linear-gradient(90deg, ${color}, ${color}cc)`,
                   transition: "width 0.8s cubic-bezier(0.16,1,0.3,1)",
                 }} />

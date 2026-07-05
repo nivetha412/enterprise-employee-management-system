@@ -11,7 +11,7 @@ const ROLES = ["ADMIN", "HR", "EMPLOYEE"];
 
 export default function Navbar({ onSidebarToggle }) {
   const email = localStorage.getItem("email") || "";
-  const { role: ctxRole, setRole } = useRole();
+  const { role: ctxRole } = useRole();
   const role = ctxRole || localStorage.getItem("role") || "EMPLOYEE";
   const initials = email ? email.slice(0, 2).toUpperCase() : "U";
   const navigate = useNavigate();
@@ -45,11 +45,12 @@ export default function Navbar({ onSidebarToggle }) {
     { id: 3, icon: "📊", text: "Monthly attendance report is ready", time: "3h ago", unread: false },
   ];
 
+  // Switching role requires a fresh login — clear session and go to login page with role pre-selected
   const switchRole = (newRole) => {
-    setRole(newRole);
     setShowRole(false);
-    const newDomain = ROLE_TO_DOMAIN[newRole] || "employee";
-    navigate(`/${newDomain}/dashboard`, { replace: true });
+    if (newRole === role) return;
+    localStorage.clear();
+    navigate(`/?role=${newRole.toLowerCase()}`, { replace: true });
   };
 
   const roleColors = { ADMIN: "#1e40af", HR: "#7c3aed", EMPLOYEE: "#059669" };
@@ -156,7 +157,7 @@ export default function Navbar({ onSidebarToggle }) {
               minWidth: "150px", overflow: "hidden", zIndex: 300
             }}>
               <div style={{ padding: "8px 12px 6px", fontSize: "11px", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                Switch Role
+                Switch Role (Re-login)
               </div>
               {ROLES.map(r => (
                 <button key={r} onClick={() => switchRole(r)} style={{

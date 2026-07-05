@@ -22,11 +22,9 @@ public class AuthService {
     private final EmployeeRepository employeeRepository;
 
     public void registerUser(RegisterUserDto dto) {
-        
         if (userRepository.findByEmail(dto.getEmail()).isPresent()) {
-        throw new RuntimeException("Email already exists");
-    }
-
+            throw new RuntimeException("Email already exists");
+        }
         User user = User.builder()
                 .firstName(dto.getFirstName())
                 .lastName(dto.getLastName())
@@ -35,29 +33,59 @@ public class AuthService {
                 .role(dto.getRole())
                 .active(true)
                 .build();
-
         userRepository.save(user);
     }
+
     public LoginResponseDto login(LoginRequestDto dto) {
 
-    User user = userRepository.findByEmail(dto.getEmail())
-            .orElseThrow(() -> new RuntimeException("User not found"));
+        // ── EMPLOYEE login: authenticate directly via employeeCode ──────────
+        // employeeCode is both the username and the password (e.g. EMP001/EMP001)
+        if (dto.getEmployeeCode() != null && !dto.getEmployeeCode().isBlank()) {
+            String code = dto.getEmployeeCode().trim();
 
-    if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
-        throw new RuntimeException("Invalid Password");
+            Employee employee = employeeRepository.findByEmployeeCode(code)
+                    .orElseThrow(() -> new RuntimeException("Employee not found: " + code));
+
+            // Password = employeeCode (plain text comparison for now)
+            if (!code.equals(dto.getPassword() != null ? dto.getPassword().trim() : "")) {
+                throw new RuntimeException("Invalid employee code");
+            }
+
+            // Use employeeCode as the JWT subject (no User record needed)
+            String token = jwtService.generateToken(code);
+
+            return new LoginResponseDto(
+                    token,
+                    code,
+                    "EMPLOYEE",
+                    employee.getId()
+            );
+        }
+
+        // ── ADMIN / HR login: authenticate via User table (email + password) ─
+        if (dto.getEmail() == null || dto.getEmail().isBlank()) {
+            throw new RuntimeException("Email is required");
+        }
+
+        User user = userRepository.findByEmail(dto.getEmail().trim())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
+            throw new RuntimeException("Invalid password");
+        }
+
+        String token = jwtService.generateToken(user.getEmail());
+
+        // Check if this admin/HR user also has an employee record
+        Long employeeId = employeeRepository.findByEmail(user.getEmail())
+                .map(Employee::getId)
+                .orElse(null);
+
+        return new LoginResponseDto(
+                token,
+                user.getEmail(),
+                user.getRole().name(),
+                employeeId
+        );
     }
-
-   String token = jwtService.generateToken(user.getEmail());
-
-   Long employeeId = employeeRepository.findByEmail(user.getEmail())
-           .map(Employee::getId)
-           .orElse(null);
-
-return new LoginResponseDto(
-        token,
-        user.getEmail(),
-        user.getRole(),
-        employeeId
-);
-}
 }

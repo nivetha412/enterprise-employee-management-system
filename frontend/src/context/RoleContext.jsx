@@ -19,16 +19,26 @@ export function RoleProvider({ children }) {
   const [role, setRoleState] = useState(
     () => localStorage.getItem("role") || null
   );
+  const [employeeId, setEmployeeIdState] = useState(
+    () => localStorage.getItem("employeeId") || null
+  );
 
   const setRole = useCallback((newRole) => {
     localStorage.setItem("role", newRole);
     setRoleState(newRole);
   }, []);
 
+  const setEmployeeId = useCallback((id) => {
+    if (id) {
+      localStorage.setItem("employeeId", String(id));
+      setEmployeeIdState(String(id));
+    }
+  }, []);
+
   const domain = ROLE_TO_DOMAIN[role] || null;
 
   return (
-    <RoleContext.Provider value={{ role, domain, setRole }}>
+    <RoleContext.Provider value={{ role, domain, setRole, employeeId, setEmployeeId }}>
       {children}
     </RoleContext.Provider>
   );

@@ -25,9 +25,16 @@ public class EmployeeController {
     public ResponseEntity<EmployeeResponseDto> getMe(
             @RequestHeader("Authorization") String authHeader) {
         String token = authHeader.replace("Bearer ", "");
-        String email = jwtService.extractEmail(token);
-        Employee emp = employeeRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Employee profile not found for: " + email));
+        String subject = jwtService.extractEmail(token); // subject is email OR employeeCode
+
+        // Try by email first (Admin/HR who also have an employee record)
+        Employee emp = employeeRepository.findByEmail(subject)
+                .orElseGet(() ->
+                    // Fall back to employeeCode (Employee login)
+                    employeeRepository.findByEmployeeCode(subject)
+                            .orElseThrow(() -> new RuntimeException("Employee profile not found for: " + subject))
+                );
+
         return ResponseEntity.ok(employeeService.getEmployeeById(emp.getId()));
     }
 
