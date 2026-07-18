@@ -23,10 +23,12 @@ export default function EmployeeAttendance() {
 
   const fetchRecords = async () => {
     try {
-      const res = await api.get("/attendance");
+      const employeeId = localStorage.getItem("employeeId");
+      if (!employeeId) return;
+      const res = await api.get(`/attendance/employee/${employeeId}`);
       setRecords(res.data || []);
     } catch {
-      // fall back to mock data inside components
+      // components handle empty state
     }
   };
 
@@ -48,7 +50,9 @@ export default function EmployeeAttendance() {
   const handleCheckIn = async () => {
     setLoading(true);
     try {
-      await api.post("/attendance/checkin", {});
+      const employeeId = localStorage.getItem("employeeId");
+      if (!employeeId) { showToast("Employee profile not linked", "error"); setLoading(false); return; }
+      await api.post("/attendance/checkin", { employeeId: Number(employeeId) });
       await fetchRecords();
       showToast("Check-in recorded successfully ✓");
     } catch (err) {
@@ -61,7 +65,9 @@ export default function EmployeeAttendance() {
   const handleCheckOut = async () => {
     setLoading(true);
     try {
-      await api.post("/attendance/checkout", {});
+      const employeeId = localStorage.getItem("employeeId");
+      if (!employeeId) { showToast("Employee profile not linked", "error"); setLoading(false); return; }
+      await api.post("/attendance/checkout", { employeeId: Number(employeeId) });
       await fetchRecords();
       showToast("Check-out recorded successfully ✓");
     } catch (err) {

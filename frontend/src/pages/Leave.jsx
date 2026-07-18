@@ -60,19 +60,18 @@ export default function Leave() {
   const updateStatus = async (lv, status, remarks = "") => {
     try {
       await api.put(`/leave/${lv.id}`, {
-        employeeId:       lv.employeeId,
-        leaveType:        lv.leaveType,
-        startDate:        lv.startDate,
-        endDate:          lv.endDate,
-        reason:           lv.reason,
-        priority:         lv.priority,
-        backupEmployeeId: lv.backupEmployeeId,
+        employeeId:     lv.employeeId,
+        leaveType:      lv.leaveType,
+        startDate:      lv.startDate,
+        endDate:        lv.endDate,
+        reason:         lv.reason,
+        priority:       lv.priority,
+        ...(lv.backupEmployeeId ? { backupEmployeeId: lv.backupEmployeeId } : {}),
         status,
-        managerRemarks:   remarks || lv.managerRemarks,
-        hrRemarks:        lv.hrRemarks,
+        managerRemarks: remarks || lv.managerRemarks,
+        hrRemarks:      lv.hrRemarks,
       });
       await loadAll();
-      // Refresh the open modal with updated data
       if (viewLeave?.id === lv.id) setViewLeave(null);
       showToast(`Leave ${status.toLowerCase()} successfully`);
     } catch (err) {

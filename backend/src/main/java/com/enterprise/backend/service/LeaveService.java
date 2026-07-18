@@ -22,24 +22,17 @@ public class LeaveService {
     public LeaveResponseDto applyLeave(
             LeaveRequestDto dto) {
 
-        if (dto.getStartDate()
-                .isAfter(dto.getEndDate())) {
-
-            throw new RuntimeException(
-                    "Start date cannot be after end date");
+        if (dto.getStartDate().isAfter(dto.getEndDate())) {
+            throw new RuntimeException("Start date cannot be after end date");
         }
 
+        // backupEmployeeId is required only when applying (not when admin approves/rejects)
         if (dto.getBackupEmployeeId() == null) {
-
-            throw new RuntimeException(
-                    "Backup Employee Required");
+            throw new RuntimeException("Backup Employee Required");
         }
 
-        if (dto.getEmployeeId()
-                .equals(dto.getBackupEmployeeId())) {
-
-            throw new RuntimeException(
-                    "Backup employee cannot be same employee");
+        if (dto.getEmployeeId().equals(dto.getBackupEmployeeId())) {
+            throw new RuntimeException("Backup employee cannot be same employee");
         }
 
         int totalDays =
@@ -118,8 +111,23 @@ public LeaveResponseDto updateLeave(
                     .orElseThrow(() ->
                             new RuntimeException("Leave Not Found"));
 
-    if (leave.getStatus() != LeaveStatus.PENDING) {
+    // Admin approve/reject: only update status + remarks, skip field edits
+    if (dto.getStatus() != null && dto.getStatus() != LeaveStatus.PENDING) {
+        leave.setStatus(dto.getStatus());
+        if (dto.getManagerRemarks() != null) {
+            leave.setManagerRemarks(dto.getManagerRemarks());
+        }
+        if (dto.getHrRemarks() != null) {
+            leave.setHrRemarks(dto.getHrRemarks());
+        }
+        if (dto.getStatus() == LeaveStatus.APPROVED) {
+            leave.setApprovedDate(LocalDate.now());
+        }
+        return mapToDto(leaveRequestRepository.save(leave));
+    }
 
+    // Regular edit: only allowed while PENDING
+    if (leave.getStatus() != LeaveStatus.PENDING) {
         throw new RuntimeException(
                 "Only Pending Leave Can Be Updated");
     }
@@ -134,13 +142,12 @@ public LeaveResponseDto updateLeave(
     leave.setEndDate(dto.getEndDate());
     leave.setReason(dto.getReason());
     leave.setPriority(dto.getPriority());
-    leave.setBackupEmployeeId(dto.getBackupEmployeeId());
+    if (dto.getBackupEmployeeId() != null) {
+        leave.setBackupEmployeeId(dto.getBackupEmployeeId());
+    }
     leave.setTotalDays(totalDays);
 
-    LeaveRequest updatedLeave =
-            leaveRequestRepository.save(leave);
-
-    return mapToDto(updatedLeave);
+    return mapToDto(leaveRequestRepository.save(leave));
 }
 
 public void deleteLeave(Long id) {

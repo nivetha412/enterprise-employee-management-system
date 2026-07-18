@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import api from "../services/api";
-import { RiCheckboxCircleLine, RiCheckLine, RiCloseLine, RiTeamLine, RiBuildingLine, RiUserHeartLine } from "react-icons/ri";
+import { RiCheckboxCircleLine, RiCheckLine, RiCloseLine, RiTeamLine, RiBuildingLine } from "react-icons/ri";
 
 const AVATAR_COLORS = ["#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#0891b2"];
 
@@ -22,30 +22,15 @@ function Avatar({ name = "", size = 32 }) {
 const widgetCard  = { background: "#fff", borderRadius: "16px", padding: "20px", boxShadow: "var(--shadow-sm)", border: "1px solid var(--border)" };
 const widgetTitle = { fontSize: "13.5px", fontWeight: 700, color: "var(--text-primary)", marginBottom: "3px", display: "flex", alignItems: "center", gap: "8px" };
 
-export default function InfoWidgets() {
-  const [pendingLeaves, setPendingLeaves] = useState([]);
-  const [employees,     setEmployees]     = useState([]);
-  const [departments,   setDepartments]   = useState([]);
-  const [loading,       setLoading]       = useState(true);
-  const [toast,         setToast]         = useState("");
+// Accepts data as props — no internal API calls (avoids duplicate fetches from Dashboard)
+export default function InfoWidgets({ leaves = [], employees = [], departments = [], loading = false, onRefresh }) {
+  const [toast, setToast] = useState("");
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
 
-  const fetchAll = () => {
-    setLoading(true);
-    Promise.all([api.get("/leave"), api.get("/employees"), api.get("/departments")])
-      .then(([l, e, d]) => {
-        setPendingLeaves(l.data.filter(lv => lv.status === "PENDING"));
-        setEmployees(e.data);
-        setDepartments(d.data);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => { fetchAll(); }, []);
-
   const getEmp = (id) => employees.find(e => e.id === id || e.id === Number(id));
+
+  const pendingLeaves = leaves.filter(lv => lv.status === "PENDING");
 
   const updateLeaveStatus = async (id, status) => {
     const lv = pendingLeaves.find(l => l.id === id);
@@ -55,9 +40,10 @@ export default function InfoWidgets() {
         employeeId: lv.employeeId, leaveType: lv.leaveType,
         startDate: lv.startDate, endDate: lv.endDate,
         reason: lv.reason, priority: lv.priority,
-        backupEmployeeId: lv.backupEmployeeId, status,
+        ...(lv.backupEmployeeId ? { backupEmployeeId: lv.backupEmployeeId } : {}),
+        status,
       });
-      fetchAll();
+      if (onRefresh) onRefresh();
       showToast(`Leave ${status.toLowerCase()} successfully`);
     } catch { showToast("Failed to update leave status"); }
   };
@@ -159,9 +145,9 @@ export default function InfoWidgets() {
             {pendingLeaves.slice(0, 5).map(lv => {
               const emp = getEmp(lv.employeeId);
               const name = emp ? `${emp.firstName} ${emp.lastName}` : `Employee #${lv.employeeId}`;
-              const days = lv.startDate && lv.endDate
+              const days = lv.totalDays ?? (lv.startDate && lv.endDate
                 ? Math.max(1, Math.round((new Date(lv.endDate) - new Date(lv.startDate)) / 86400000) + 1)
-                : "?";
+                : "?");
               return (
                 <div key={lv.id} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 10px", borderRadius: "10px", border: "1px solid var(--border)", background: "#fafafa" }}>
                   <Avatar name={name} size={32} />

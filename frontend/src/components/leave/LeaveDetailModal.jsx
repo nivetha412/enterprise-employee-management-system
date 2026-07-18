@@ -37,10 +37,10 @@ function SecLabel({ children }) {
 }
 
 export default function LeaveDetailModal({ leave, employees, allLeaves, onClose, onApprove, onReject }) {
-  if (!leave) return null;
-
   const [remarks, setRemarks] = useState("");
   const [acting, setActing]   = useState(false);
+
+  if (!leave) return null;
 
   const emp  = employees.find(e => e.id === leave.employeeId || e.id === Number(leave.employeeId));
   const name = emp ? `${emp.firstName} ${emp.lastName}` : `Employee #${leave.employeeId}`;

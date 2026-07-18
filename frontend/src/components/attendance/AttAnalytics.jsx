@@ -187,36 +187,36 @@ export default function AttAnalytics({ attendance, employees, departments, leave
   const totalAll   = attendance.length;
 
   // ── Alert data ──────────────────────────────────────────────────────────────
-  const getName = id => { const e = employees.find(x => x.id === id); return e ? `${e.firstName} ${e.lastName}` : `Employee #${id}`; };
+  const getName = (id) => { const e = employees.find(x => x.id === id); return e ? `${e.firstName} ${e.lastName}` : `Employee #${id}`; };
 
   const lateAlerts = useMemo(() =>
     attendance.filter(a => String(a.attendanceDate) === today && a.lateArrival && a.checkInTime)
       .map(a => ({ name: getName(a.employeeId), checkIn: a.checkInTime })),
-    [attendance, employees, today]
+    [attendance, employees, today] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const missingCheckout = useMemo(() =>
     attendance.filter(a => String(a.attendanceDate) === today && a.checkInTime && !a.checkOutTime && a.status === "PRESENT")
       .map(a => ({ name: getName(a.employeeId), checkIn: a.checkInTime })),
-    [attendance, employees, today]
+    [attendance, employees, today] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const absentToday = useMemo(() =>
     attendance.filter(a => String(a.attendanceDate) === today && a.status === "ABSENT")
       .map(a => ({ name: getName(a.employeeId) })),
-    [attendance, employees, today]
+    [attendance, employees, today] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const onLeaveToday = useMemo(() =>
     leaves.filter(l => l.status === "APPROVED" && String(l.startDate) <= today && String(l.endDate) >= today)
       .map(l => ({ name: getName(l.employeeId), type: l.leaveType || "Leave" })),
-    [leaves, employees, today]
+    [leaves, employees, today] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const pendingLeaves = useMemo(() =>
     leaves.filter(l => l.status === "PENDING")
       .map(l => ({ name: getName(l.employeeId), type: l.leaveType || "Leave" })),
-    [leaves, employees]
+    [leaves, employees] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   return (

@@ -31,4 +31,7 @@ public class EmployeeRequestDto {
 
     @NotBlank(message = "Employment type is required")
     private String employmentType;
+
+    // Optional: used by bulk activate/deactivate
+    private Boolean active;
 }

@@ -33,7 +33,7 @@ function App() {
         } />
 
         <Route path="leave" element={
-          <ProtectedRoute allowedRoles={["ADMIN", "HR", "EMPLOYEE"]}>
+          <ProtectedRoute allowedRoles={["ADMIN", "HR"]}>
             <Leave />
           </ProtectedRoute>
         } />

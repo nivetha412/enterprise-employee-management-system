@@ -1,8 +1,6 @@
-import { useEffect, useState } from "react";
-import api from "../services/api";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
-  PieChart, Pie, Cell, Legend, AreaChart, Area
+  PieChart, Pie, Cell, Legend,
 } from "recharts";
 
 const DEPT_COLORS = ["#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#0891b2", "#0d9488", "#ea580c"];
@@ -48,25 +46,8 @@ function EmptyChart({ message = "No data available" }) {
   );
 }
 
-export default function DashboardCharts() {
-  const [attendance,   setAttendance]   = useState([]);
-  const [employees,    setEmployees]    = useState([]);
-  const [departments,  setDepartments]  = useState([]);
-  const [leaves,       setLeaves]       = useState([]);
-
-  useEffect(() => {
-    Promise.all([
-      api.get("/attendance"),
-      api.get("/employees"),
-      api.get("/departments"),
-      api.get("/leave"),
-    ]).then(([a, e, d, l]) => {
-      setAttendance(a.data);
-      setEmployees(e.data);
-      setDepartments(d.data);
-      setLeaves(l.data);
-    }).catch(console.error);
-  }, []);
+// Accepts data as props — no internal API calls (avoids duplicate fetches from Dashboard)
+export default function DashboardCharts({ attendance = [], employees = [], departments = [], leaves = [] }) {
 
   // ── Attendance Trend: group by date (last 7 dates with records) ────────────
   const attendanceTrend = (() => {
@@ -84,7 +65,7 @@ export default function DashboardCharts() {
       .map(d => ({ ...d, day: new Date(d.day).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) }));
   })();
 
-  // ── Department Distribution: real employee counts ─────────────────────────
+  // ── Department Distribution ────────────────────────────────────────────────
   const deptDistribution = departments.map((dept, i) => {
     const count = employees.filter(e =>
       (e.department || "").toLowerCase().trim() === (dept.departmentName || "").toLowerCase().trim()
@@ -92,9 +73,7 @@ export default function DashboardCharts() {
     return { name: dept.departmentName, value: count, color: DEPT_COLORS[i % DEPT_COLORS.length] };
   }).filter(d => d.value > 0);
 
-  // ── Employee Growth: group by month of creation (use id as proxy if no date) ─
-  // Since Employee entity has no createdDate, we group by department as a distribution instead
-  // and show total per department as a bar chart
+  // ── Employees per Department bar ───────────────────────────────────────────
   const deptBarData = departments.map((dept, i) => ({
     name: dept.departmentName.length > 10 ? dept.departmentName.slice(0, 10) + "…" : dept.departmentName,
     employees: employees.filter(e =>
@@ -174,7 +153,7 @@ export default function DashboardCharts() {
         }
       </div>
 
-      {/* Employees per Department (bar) */}
+      {/* Employees per Department */}
       <div style={card}>
         <h3 style={chartTitle}>Employees per Department</h3>
         <p style={chartSub}>Current headcount distribution</p>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import api from "../services/api";
 import MainLayout from "../layouts/MainLayout";
 import DashboardCard from "../components/DashboardCard";
@@ -45,22 +45,41 @@ function LiveClock() {
 }
 
 export default function Dashboard() {
-  const [dashboard,     setDashboard]     = useState(null);
-  const [pendingLeaves, setPendingLeaves] = useState(null);
-  const [loading,       setLoading]       = useState(true);
+  const [dashboard,    setDashboard]    = useState(null);
+  const [employees,    setEmployees]    = useState([]);
+  const [departments,  setDepartments]  = useState([]);
+  const [attendance,   setAttendance]   = useState([]);
+  const [leaves,       setLeaves]       = useState([]);
+  const [loading,      setLoading]      = useState(true);
 
   const email       = localStorage.getItem("email") || "";
   const displayName = email.split("@")[0] || "Admin";
 
-  useEffect(() => {
-    Promise.all([
-      api.get("/reports/dashboard"),
-      api.get("/leave"),
-    ]).then(([r, l]) => {
-      setDashboard(r.data);
-      setPendingLeaves(l.data.filter(lv => lv.status === "PENDING").length);
-    }).catch(console.error).finally(() => setLoading(false));
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [rDash, rEmp, rDept, rAtt, rLeave] = await Promise.all([
+        api.get("/reports/dashboard"),
+        api.get("/employees"),
+        api.get("/departments"),
+        api.get("/attendance"),
+        api.get("/leave"),
+      ]);
+      setDashboard(rDash.data);
+      setEmployees(rEmp.data);
+      setDepartments(rDept.data);
+      setAttendance(rAtt.data);
+      setLeaves(rLeave.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => { loadAll(); }, [loadAll]);
+
+  const pendingLeaveCount = leaves.filter(lv => lv.status === "PENDING").length;
 
   const stats = {
     totalEmployees:   dashboard?.totalEmployees   ?? null,
@@ -69,10 +88,9 @@ export default function Dashboard() {
     presentToday:     dashboard?.presentToday     ?? null,
     absentToday:      dashboard?.absentToday      ?? null,
     lateToday:        dashboard?.lateToday        ?? null,
-    pendingLeaves:    pendingLeaves               ?? null,
+    pendingLeaves:    pendingLeaveCount            ?? null,
   };
 
-  // Compute attendance rate for hero banner
   const attendanceRate = (stats.presentToday != null && stats.totalEmployees)
     ? Math.round((Number(stats.presentToday) / Number(stats.totalEmployees)) * 100)
     : null;
@@ -103,18 +121,9 @@ export default function Dashboard() {
             </p>
             <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
               {[
-                {
-                  label: "Total Employees",
-                  value: loading ? "…" : (stats.totalEmployees ?? "—"),
-                },
-                {
-                  label: "Attendance Today",
-                  value: loading ? "…" : (attendanceRate != null ? `${attendanceRate}%` : "—"),
-                },
-                {
-                  label: "Pending Actions",
-                  value: loading ? "…" : (stats.pendingLeaves != null ? `${stats.pendingLeaves} leave${stats.pendingLeaves !== 1 ? "s" : ""}` : "—"),
-                },
+                { label: "Total Employees",  value: loading ? "…" : (stats.totalEmployees ?? "—") },
+                { label: "Attendance Today", value: loading ? "…" : (attendanceRate != null ? `${attendanceRate}%` : "—") },
+                { label: "Pending Actions",  value: loading ? "…" : (stats.pendingLeaves != null ? `${stats.pendingLeaves} leave${stats.pendingLeaves !== 1 ? "s" : ""}` : "—") },
               ].map(item => (
                 <div key={item.label} style={{
                   background: "rgba(255,255,255,0.12)", backdropFilter: "blur(4px)",
@@ -148,11 +157,28 @@ export default function Dashboard() {
       <QuickActions />
 
       <div className="dashboard-two-col" style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: "24px", marginTop: "24px", alignItems: "start" }}>
-        <RecentActivities />
-        <InfoWidgets />
+        <RecentActivities
+          attendance={attendance}
+          leaves={leaves}
+          employees={employees}
+          loading={loading}
+          onRefresh={loadAll}
+        />
+        <InfoWidgets
+          leaves={leaves}
+          employees={employees}
+          departments={departments}
+          loading={loading}
+          onRefresh={loadAll}
+        />
       </div>
 
-      <DashboardCharts />
+      <DashboardCharts
+        attendance={attendance}
+        employees={employees}
+        departments={departments}
+        leaves={leaves}
+      />
     </MainLayout>
   );
 }

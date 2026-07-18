@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
-import api from "../services/api";
-import { RiTimeLine, RiCalendarLine, RiUserAddLine, RiRefreshLine } from "react-icons/ri";
+import { useState } from "react";
+import { RiRefreshLine } from "react-icons/ri";
 
 const TABS = [
   { key: "all",      label: "All" },
@@ -20,26 +19,9 @@ function timeAgo(dateStr, timeStr) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-export default function RecentActivities() {
-  const [tab,        setTab]        = useState("all");
-  const [attendance, setAttendance] = useState([]);
-  const [leaves,     setLeaves]     = useState([]);
-  const [employees,  setEmployees]  = useState([]);
-  const [loading,    setLoading]    = useState(true);
-
-  const fetchData = () => {
-    setLoading(true);
-    Promise.all([api.get("/attendance"), api.get("/leave"), api.get("/employees")])
-      .then(([a, l, e]) => {
-        setAttendance(a.data);
-        setLeaves(l.data);
-        setEmployees(e.data);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => { fetchData(); }, []);
+// Accepts data as props — no internal API calls (avoids duplicate fetches from Dashboard)
+export default function RecentActivities({ attendance = [], leaves = [], employees = [], loading = false, onRefresh }) {
+  const [tab, setTab] = useState("all");
 
   const empName = (id) => {
     const e = employees.find(e => e.id === id || e.id === Number(id));
@@ -51,34 +33,33 @@ export default function RecentActivities() {
     return e?.department || e?.designation || "";
   };
 
-  // Build unified activity list
   const checkInActivities = attendance
     .filter(a => a.checkInTime)
-    .sort((a, b) => b.attendanceDate?.localeCompare(a.attendanceDate))
+    .sort((a, b) => String(b.attendanceDate).localeCompare(String(a.attendanceDate)))
     .slice(0, 20)
     .map(a => ({
-      id:       `att-${a.id}`,
-      category: "checkins",
-      icon:     "👤",
+      id:        `att-${a.id}`,
+      category:  "checkins",
+      icon:      "👤",
       iconColor: a.lateArrival ? "#ef4444" : "#3b82f6",
-      title:    `${empName(a.employeeId)} checked ${a.checkOutTime ? "out" : "in"}`,
-      detail:   `${empDept(a.employeeId) || "—"} · ${a.lateArrival ? "Late arrival" : "On time"}`,
-      time:     timeAgo(a.attendanceDate, a.checkInTime),
-      dot:      a.lateArrival ? "#ef4444" : "#10b981",
+      title:     `${empName(a.employeeId)} checked ${a.checkOutTime ? "out" : "in"}`,
+      detail:    `${empDept(a.employeeId) || "—"} · ${a.lateArrival ? "Late arrival" : "On time"}`,
+      time:      timeAgo(a.attendanceDate, a.checkInTime),
+      dot:       a.lateArrival ? "#ef4444" : "#10b981",
     }));
 
   const leaveActivities = leaves
     .sort((a, b) => b.id - a.id)
     .slice(0, 20)
     .map(l => ({
-      id:       `leave-${l.id}`,
-      category: "leaves",
-      icon:     "📝",
+      id:        `leave-${l.id}`,
+      category:  "leaves",
+      icon:      "📝",
       iconColor: l.status === "APPROVED" ? "#10b981" : l.status === "REJECTED" ? "#ef4444" : "#f59e0b",
-      title:    `${empName(l.employeeId)} — ${(l.leaveType || "").replace(/_/g, " ")}`,
-      detail:   `${l.startDate} → ${l.endDate} · ${l.status}`,
-      time:     l.startDate ? new Date(l.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "",
-      dot:      l.status === "APPROVED" ? "#10b981" : l.status === "REJECTED" ? "#ef4444" : "#f59e0b",
+      title:     `${empName(l.employeeId)} — ${(l.leaveType || "").replace(/_/g, " ")}`,
+      detail:    `${l.startDate} → ${l.endDate} · ${l.status}`,
+      time:      l.startDate ? new Date(l.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "",
+      dot:       l.status === "APPROVED" ? "#10b981" : l.status === "REJECTED" ? "#ef4444" : "#f59e0b",
     }));
 
   const allActivities = [...checkInActivities, ...leaveActivities]
@@ -86,7 +67,6 @@ export default function RecentActivities() {
     .slice(0, 15);
 
   const displayed = tab === "all" ? allActivities : tab === "checkins" ? checkInActivities.slice(0, 10) : leaveActivities.slice(0, 10);
-
   const counts = { all: allActivities.length, checkins: checkInActivities.length, leaves: leaveActivities.length };
 
   return (
@@ -99,13 +79,15 @@ export default function RecentActivities() {
             <p style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>Real-time employee activity</p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <button
-              onClick={fetchData}
-              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center", padding: 4 }}
-              title="Refresh"
-            >
-              <RiRefreshLine size={15} />
-            </button>
+            {onRefresh && (
+              <button
+                onClick={onRefresh}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center", padding: 4 }}
+                title="Refresh"
+              >
+                <RiRefreshLine size={15} />
+              </button>
+            )}
             <span style={{ fontSize: "11px", fontWeight: 600, color: "#10b981", background: "#ecfdf5", padding: "3px 10px", borderRadius: "20px", border: "1px solid #bbf7d0", display: "flex", alignItems: "center", gap: "5px" }}>
               <span className="pulse-dot" /> Live
             </span>

@@ -9,6 +9,7 @@ import com.enterprise.backend.repository.EmployeeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -23,66 +24,44 @@ public class ReportService {
 
     public DashboardReportDto getDashboardReport() {
 
-        long totalEmployees =
-        employeeRepository.count();
+        long totalEmployees = employeeRepository.count();
 
-long totalDepartments =
-        departmentRepository.count();
+        long totalDepartments = departmentRepository.count();
 
-List<Employee> employees =
-        employeeRepository.findAll();
+        List<Employee> employees = employeeRepository.findAll();
 
-long activeEmployees =
-        employees.stream()
-                .filter(employee ->
-                        Boolean.TRUE.equals(employee.getActive()))
+        long activeEmployees = employees.stream()
+                .filter(e -> Boolean.TRUE.equals(e.getActive()))
                 .count();
 
-long inactiveEmployees =
-        totalEmployees - activeEmployees;
+        long inactiveEmployees = totalEmployees - activeEmployees;
 
-List<Attendance> attendanceList =
-        attendanceRepository.findAll();
+        // Only count today's attendance records
+        LocalDate today = LocalDate.now();
+        List<Attendance> todayAttendance = attendanceRepository.findAll().stream()
+                .filter(a -> today.equals(a.getAttendanceDate()))
+                .toList();
 
-long presentToday =
-        attendanceList.stream()
-                .filter(attendance ->
-                        "PRESENT".equals(
-                                attendance.getStatus()))
+        long presentToday = todayAttendance.stream()
+                .filter(a -> "PRESENT".equals(a.getStatus()))
                 .count();
 
-long absentToday =
-        attendanceList.stream()
-                .filter(attendance ->
-                        "ABSENT".equals(
-                                attendance.getStatus()))
+        long absentToday = todayAttendance.stream()
+                .filter(a -> "ABSENT".equals(a.getStatus()))
                 .count();
 
-long lateToday =
-        attendanceList.stream()
-                .filter(attendance ->
-                        Boolean.TRUE.equals(
-                                attendance.getLateArrival()))
+        long lateToday = todayAttendance.stream()
+                .filter(a -> Boolean.TRUE.equals(a.getLateArrival()))
                 .count();
 
-return DashboardReportDto.builder()
-
-        .totalEmployees(totalEmployees)
-
-        .activeEmployees(activeEmployees)
-
-        .inactiveEmployees(inactiveEmployees)
-
-        .totalDepartments(totalDepartments)
-
-        .presentToday(presentToday)
-
-        .absentToday(absentToday)
-
-        .lateToday(lateToday)
-
-        .build();
-
+        return DashboardReportDto.builder()
+                .totalEmployees(totalEmployees)
+                .activeEmployees(activeEmployees)
+                .inactiveEmployees(inactiveEmployees)
+                .totalDepartments(totalDepartments)
+                .presentToday(presentToday)
+                .absentToday(absentToday)
+                .lateToday(lateToday)
+                .build();
     }
-
 }

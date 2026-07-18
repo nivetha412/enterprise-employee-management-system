@@ -88,6 +88,10 @@ public class EmployeeServiceImpl implements EmployeeService {
         employee.setSalary(dto.getSalary());
         employee.setDepartment(dto.getDepartment());
         employee.setEmploymentType(dto.getEmploymentType());
+        // Allow bulk activate/deactivate — only update if explicitly provided
+        if (dto.getActive() != null) {
+            employee.setActive(dto.getActive());
+        }
 
         return toResponseDto(employeeRepository.save(employee));
     }

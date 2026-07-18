@@ -19,88 +19,51 @@ public class AttendanceServiceImpl implements AttendanceService {
     private final AttendanceRepository attendanceRepository;
 
     @Override
-    public AttendanceResponseDto checkIn(
-            AttendanceRequestDto dto) {
-
+    public AttendanceResponseDto checkIn(AttendanceRequestDto dto) {
         Attendance attendance = Attendance.builder()
                 .employeeId(dto.getEmployeeId())
                 .attendanceDate(LocalDate.now())
                 .checkInTime(LocalTime.now())
                 .status("PRESENT")
-                .lateArrival(
-                        LocalTime.now().isAfter(
-                                LocalTime.of(9, 0)))
+                .lateArrival(LocalTime.now().isAfter(LocalTime.of(9, 0)))
                 .build();
-
-        Attendance savedAttendance =
-                attendanceRepository.save(attendance);
-
-        return mapToDto(savedAttendance);
+        return mapToDto(attendanceRepository.save(attendance));
     }
 
     @Override
-    public AttendanceResponseDto checkOut(
-            AttendanceRequestDto dto) {
-
-        Attendance attendance =
-                attendanceRepository.findAll()
-                        .stream()
-                        .filter(a ->
-                                a.getEmployeeId().equals(
-                                        dto.getEmployeeId()))
-                        .reduce((first, second) -> second)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Attendance Record Not Found"));
+    public AttendanceResponseDto checkOut(AttendanceRequestDto dto) {
+        // Find today's most recent check-in for this employee
+        Attendance attendance = attendanceRepository
+                .findTopByEmployeeIdAndAttendanceDateOrderByIdDesc(
+                        dto.getEmployeeId(), LocalDate.now())
+                .orElseThrow(() -> new RuntimeException("No check-in record found for today"));
 
         attendance.setCheckOutTime(LocalTime.now());
-
-        double workingHours =
-                Duration.between(
-                        attendance.getCheckInTime(),
-                        attendance.getCheckOutTime())
-                        .toMinutes() / 60.0;
-
+        double workingHours = Duration.between(
+                attendance.getCheckInTime(),
+                attendance.getCheckOutTime()).toMinutes() / 60.0;
         attendance.setWorkingHours(workingHours);
-
-        Attendance updatedAttendance =
-                attendanceRepository.save(attendance);
-
-        return mapToDto(updatedAttendance);
+        return mapToDto(attendanceRepository.save(attendance));
     }
 
     @Override
     public List<AttendanceResponseDto> getAllAttendance() {
-
-        return attendanceRepository.findAll()
-                .stream()
-                .map(this::mapToDto)
-                .toList();
+        return attendanceRepository.findAll().stream().map(this::mapToDto).toList();
     }
 
     @Override
     public List<AttendanceResponseDto> getAttendanceByEmployeeId(Long employeeId) {
-        return attendanceRepository.findByEmployeeId(employeeId)
-                .stream()
-                .map(this::mapToDto)
-                .toList();
+        return attendanceRepository.findByEmployeeId(employeeId).stream().map(this::mapToDto).toList();
     }
 
     @Override
     public void deleteAttendance(Long id) {
-
-        Attendance attendance =
-                attendanceRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Attendance Not Found"));
-
+        Attendance attendance = attendanceRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Attendance Not Found"));
         attendanceRepository.delete(attendance);
     }
 
-    private AttendanceResponseDto mapToDto(
-            Attendance attendance) {
-
+    private AttendanceResponseDto mapToDto(Attendance attendance) {
         return AttendanceResponseDto.builder()
                 .id(attendance.getId())
                 .employeeId(attendance.getEmployeeId())

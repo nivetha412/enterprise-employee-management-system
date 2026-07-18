@@ -5,12 +5,12 @@ import {
 } from "react-icons/ri";
 
 const actions = [
-  { label: "Add Employee",   icon: RiUserAddLine,            path: "/employees",  color: "#1e40af", bg: "#eff6ff", gradient: "linear-gradient(135deg,#3b82f6,#1d4ed8)" },
-  { label: "Add Department", icon: RiBuildingLine,           path: "/departments", color: "#7c3aed", bg: "#f5f3ff", gradient: "linear-gradient(135deg,#8b5cf6,#6d28d9)" },
-  { label: "Mark Attendance",icon: RiTimeLine,               path: "/attendance", color: "#059669", bg: "#ecfdf5", gradient: "linear-gradient(135deg,#10b981,#047857)" },
-  { label: "Approve Leave",  icon: RiCalendarCheckLine,      path: "/leave",      color: "#d97706", bg: "#fffbeb", gradient: "linear-gradient(135deg,#f59e0b,#b45309)" },
-  { label: "Reports",        icon: RiBarChartLine,           path: "/reports",    color: "#0891b2", bg: "#ecfeff", gradient: "linear-gradient(135deg,#06b6d4,#0e7490)" },
-  { label: "Payroll",        icon: RiMoneyDollarCircleLine,  path: "/payroll",    color: "#dc2626", bg: "#fff1f2", gradient: "linear-gradient(135deg,#ef4444,#b91c1c)" },
+  { label: "Add Employee",   icon: RiUserAddLine,           path: "/employees",   color: "#1e40af", bg: "#eff6ff", gradient: "linear-gradient(135deg,#3b82f6,#1d4ed8)" },
+  { label: "Add Department", icon: RiBuildingLine,          path: "/departments", color: "#7c3aed", bg: "#f5f3ff", gradient: "linear-gradient(135deg,#8b5cf6,#6d28d9)" },
+  { label: "Attendance",     icon: RiTimeLine,              path: "/attendance",  color: "#059669", bg: "#ecfdf5", gradient: "linear-gradient(135deg,#10b981,#047857)" },
+  { label: "Approve Leave",  icon: RiCalendarCheckLine,     path: "/leave",       color: "#d97706", bg: "#fffbeb", gradient: "linear-gradient(135deg,#f59e0b,#b45309)" },
+  { label: "Reports",        icon: RiBarChartLine,          path: "/attendance",  color: "#0891b2", bg: "#ecfeff", gradient: "linear-gradient(135deg,#06b6d4,#0e7490)" },
+  { label: "Departments",    icon: RiMoneyDollarCircleLine, path: "/departments", color: "#dc2626", bg: "#fff1f2", gradient: "linear-gradient(135deg,#ef4444,#b91c1c)" },
 ];
 
 export default function QuickActions() {

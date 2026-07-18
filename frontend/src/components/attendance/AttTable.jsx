@@ -1,6 +1,6 @@
 import {
   RiLoginBoxLine, RiLogoutBoxLine, RiUserLine,
-  RiEyeLine, RiDeleteBinLine, RiTimeLine, RiEditLine,
+  RiEyeLine, RiDeleteBinLine, RiTimeLine,
 } from "react-icons/ri";
 import { Avatar, EmptyState } from "../../styles/ui.jsx";
 
@@ -17,9 +17,9 @@ const STATUS_MAP = {
 function deriveShift(checkInTime) {
   if (!checkInTime) return null;
   const [h] = checkInTime.split(":").map(Number);
-  if (h < 12) return { label: "Morning", color: "#d97706", bg: "#fef3c7" };
+  if (h < 12) return { label: "Morning",   color: "#d97706", bg: "#fef3c7" };
   if (h < 17) return { label: "Afternoon", color: "#0891b2", bg: "#cffafe" };
-  return { label: "Evening", color: "#7c3aed", bg: "#ede9fe" };
+  return       { label: "Evening",   color: "#7c3aed", bg: "#ede9fe" };
 }
 
 const cell = { padding: "11px 13px", borderBottom: "1px solid #f1f5f9", verticalAlign: "middle" };
@@ -42,7 +42,7 @@ export default function AttTable({ records, employees, loading, onView, onDelete
                   textTransform: "uppercase", letterSpacing: "0.07em",
                   background: "linear-gradient(180deg,#f8fafc,#f1f5f9)",
                   borderBottom: "1.5px solid #e2e8f0", whiteSpace: "nowrap",
-                  ...(i === COLS.length - 1 ? { textAlign: "center", width: 90 } : {}),
+                  ...(i === COLS.length - 1 ? { textAlign: "center", width: 70 } : {}),
                 }}>{h}</th>
               ))}
             </tr>
@@ -63,13 +63,13 @@ export default function AttTable({ records, employees, loading, onView, onDelete
                 <EmptyState icon="🕐" title="No Attendance Records Found" subtitle="Adjust your filters or check back later" />
               </td></tr>
             ) : records.map(att => {
-              const emp    = employees.find(e => e.id === att.employeeId);
-              const name   = emp ? `${emp.firstName} ${emp.lastName}` : `Employee #${att.employeeId}`;
-              const effSt  = att.lateArrival && att.status === "PRESENT" ? "LATE" : att.status;
-              const st     = STATUS_MAP[effSt] || { color: "#64748b", bg: "#f1f5f9", border: "#e2e8f0" };
+              const emp     = employees.find(e => e.id === att.employeeId);
+              const name    = emp ? `${emp.firstName} ${emp.lastName}` : `Employee #${att.employeeId}`;
+              const effSt   = att.lateArrival && att.status === "PRESENT" ? "LATE" : att.status;
+              const st      = STATUS_MAP[effSt] || { color: "#64748b", bg: "#f1f5f9", border: "#e2e8f0" };
               const hoursOk = (att.workingHours || 0) >= 8;
               const overtime = att.workingHours > 8 ? (att.workingHours - 8).toFixed(1) : null;
-              const shift  = deriveShift(att.checkInTime);
+              const shift   = deriveShift(att.checkInTime);
 
               return (
                 <tr key={att.id}
@@ -77,7 +77,7 @@ export default function AttTable({ records, employees, loading, onView, onDelete
                   onMouseEnter={e => e.currentTarget.style.background = "#f8faff"}
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                 >
-                  {/* Employee photo + name */}
+                  {/* Employee */}
                   <td style={{ ...cell, minWidth: 170 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
                       {emp
@@ -183,7 +183,7 @@ export default function AttTable({ records, employees, loading, onView, onDelete
                     }
                   </td>
 
-                  {/* Date (Last Updated) */}
+                  {/* Date */}
                   <td style={cell}>
                     <span style={{ fontSize: 11.5, color: "#64748b", fontWeight: 500 }}>{String(att.attendanceDate)}</span>
                   </td>
@@ -202,18 +202,6 @@ export default function AttTable({ records, employees, loading, onView, onDelete
                         onMouseLeave={e => { e.currentTarget.style.background = "#eff6ff"; e.currentTarget.style.transform = "scale(1)"; }}
                         title="View Details"
                       ><RiEyeLine size={11} /></button>
-
-                      <button onClick={() => onView(att)} style={{
-                        width: 26, height: 26, borderRadius: 7,
-                        background: "#fefce8", border: "1px solid #fde68a",
-                        color: "#d97706", cursor: "pointer",
-                        display: "inline-flex", alignItems: "center", justifyContent: "center",
-                        transition: "all 0.15s",
-                      }}
-                        onMouseEnter={e => { e.currentTarget.style.background = "#fef9c3"; e.currentTarget.style.transform = "scale(1.1)"; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = "#fefce8"; e.currentTarget.style.transform = "scale(1)"; }}
-                        title="Edit / Correct"
-                      ><RiEditLine size={11} /></button>
 
                       <button onClick={() => onDelete(att.id)} style={{
                         width: 26, height: 26, borderRadius: 7,

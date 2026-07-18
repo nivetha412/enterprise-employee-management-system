@@ -16,7 +16,20 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
-        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+        String msg = ex.getMessage() != null ? ex.getMessage() : "An error occurred";
+        HttpStatus status;
+        if (msg.contains("not found") || msg.contains("Not Found")) {
+            status = HttpStatus.NOT_FOUND;
+        } else if (msg.contains("Invalid") || msg.contains("invalid") ||
+                   msg.contains("credentials") || msg.contains("password")) {
+            status = HttpStatus.UNAUTHORIZED;
+        } else if (msg.contains("already exists") || msg.contains("cannot be same") ||
+                   msg.contains("Required") || msg.contains("cannot be after")) {
+            status = HttpStatus.BAD_REQUEST;
+        } else {
+            status = HttpStatus.INTERNAL_SERVER_ERROR;
+        }
+        return buildResponse(status, msg);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

@@ -92,8 +92,6 @@ function NotifRow({ icon, text, sub, color, bg }) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function LeaveAnalytics({ leaves, employees, departments, today }) {
-  const getEmp = id => employees.find(e => e.id === id || e.id === Number(id));
-
   // Leave type distribution
   const typeData = useMemo(() => {
     const counts = {};
@@ -131,14 +129,14 @@ export default function LeaveAnalytics({ leaves, employees, departments, today }
       l.status === "APPROVED" &&
       String(l.startDate) <= today &&
       String(l.endDate)   >= today
-    ).map(l => ({ ...l, emp: getEmp(l.employeeId) })),
+    ).map(l => ({ ...l, emp: employees.find(e => e.id === l.employeeId || e.id === Number(l.employeeId)) })),
     [leaves, employees, today]
   );
 
   // Returning today
   const returningToday = useMemo(() =>
     leaves.filter(l => l.status === "APPROVED" && String(l.endDate) === today)
-      .map(l => getEmp(l.employeeId)).filter(Boolean),
+      .map(l => employees.find(e => e.id === l.employeeId || e.id === Number(l.employeeId))).filter(Boolean),
     [leaves, employees, today]
   );
 

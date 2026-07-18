@@ -194,7 +194,7 @@ function EmployeeDrawer({ emp, onClose }) {
               <SectionLabel>Work Information</SectionLabel>
               <InfoRow icon={<RiBuilding2Line size={15} color="#1e40af" />} label="Department"  value={emp.department} />
               <InfoRow icon={<RiBriefcaseLine size={15} color="#7c3aed" />} label="Designation" value={emp.designation} />
-              {emp.salary && <InfoRow icon={<span style={{ fontSize: 13, fontWeight: 800, color: "#059669" }}>₹</span>} label="Salary" value={`$${Number(emp.salary).toLocaleString()}`} />}
+              {emp.salary && <InfoRow icon={<span style={{ fontSize: 13, fontWeight: 800, color: "#059669" }}>$</span>} label="Salary" value={`$${Number(emp.salary).toLocaleString()}`} />}
             </div>
           )}
 
@@ -547,7 +547,8 @@ function Employees() {
     try {
       await Promise.all(selectedIds.map(id => {
         const emp = employees.find(e => e.id === id);
-        return api.put(`/employees/${id}`, toDto(emp));
+        // Include active flag so the backend actually toggles the status
+        return api.put(`/employees/${id}`, { ...toDto(emp), active });
       }));
       setSelectedIds([]);
       fetchEmployees();

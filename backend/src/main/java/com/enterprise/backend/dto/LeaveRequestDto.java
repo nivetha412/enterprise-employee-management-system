@@ -1,6 +1,7 @@
 package com.enterprise.backend.dto;
 
 import com.enterprise.backend.enums.LeavePriority;
+import com.enterprise.backend.enums.LeaveStatus;
 import com.enterprise.backend.enums.LeaveType;
 import lombok.Data;
 
@@ -22,4 +23,11 @@ public class LeaveRequestDto {
     private LeavePriority priority;
 
     private Long backupEmployeeId;
+
+    // Used by admin approve/reject
+    private LeaveStatus status;
+
+    private String managerRemarks;
+
+    private String hrRemarks;
 }

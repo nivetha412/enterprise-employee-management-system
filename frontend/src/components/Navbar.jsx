@@ -20,8 +20,7 @@ export default function Navbar({ onSidebarToggle }) {
   const [showProfile, setShowProfile] = useState(false);
   const [showNotif, setShowNotif] = useState(false);
   const [showRole, setShowRole] = useState(false);
-  const [search, setSearch] = useState("");
-  const [notifCount] = useState(3);
+  const [notifCount] = useState(0);
 
   const profileRef = useRef(null);
   const notifRef = useRef(null);
@@ -39,11 +38,7 @@ export default function Navbar({ onSidebarToggle }) {
 
   const logout = () => { localStorage.clear(); window.location.href = "/"; };
 
-  const notifications = [
-    { id: 1, icon: "📝", text: "3 leave requests pending approval", time: "5m ago", unread: true },
-    { id: 2, icon: "👤", text: "New employee Sarah joined Engineering", time: "1h ago", unread: true },
-    { id: 3, icon: "📊", text: "Monthly attendance report is ready", time: "3h ago", unread: false },
-  ];
+  const notifications = [];
 
   // Switching role requires a fresh login — clear session and go to login page with role pre-selected
   const switchRole = (newRole) => {
@@ -103,28 +98,14 @@ export default function Navbar({ onSidebarToggle }) {
         </div>
       </div>
 
-      {/* Center: Search */}
+      {/* Center: Page context */}
       <div style={{
         flex: 1, maxWidth: "420px", margin: "0 24px",
-        position: "relative", display: "flex", alignItems: "center"
+        display: "flex", alignItems: "center"
       }}>
-        <RiSearchLine size={15} color="rgba(255,255,255,0.5)"
-          style={{ position: "absolute", left: "12px", pointerEvents: "none" }} />
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search employees, departments..."
-          style={{
-            width: "100%", padding: "8px 14px 8px 36px",
-            background: "rgba(255,255,255,0.12)",
-            border: "1px solid rgba(255,255,255,0.2)",
-            borderRadius: "10px", color: "#fff", fontSize: "13px",
-            outline: "none", backdropFilter: "blur(4px)",
-            transition: "all 0.2s",
-          }}
-          onFocus={e => { e.target.style.background = "rgba(255,255,255,0.2)"; e.target.style.borderColor = "rgba(255,255,255,0.5)"; }}
-          onBlur={e => { e.target.style.background = "rgba(255,255,255,0.12)"; e.target.style.borderColor = "rgba(255,255,255,0.2)"; }}
-        />
+        <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)", fontWeight: 500 }}>
+          Enterprise HRMS Platform
+        </span>
       </div>
 
       {/* Right: Actions */}

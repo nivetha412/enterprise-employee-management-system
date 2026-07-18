@@ -15,8 +15,8 @@
   }
 }
 
-/* Input placeholder color for search */
-input::placeholder {
+/* Input placeholder color — only for navbar search (white bg) */
+header input::placeholder {
   color: rgba(255, 255, 255, 0.45);
 }
 

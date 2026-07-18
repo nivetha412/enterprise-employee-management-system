@@ -40,7 +40,7 @@ export default function Attendance() {
     setTimeout(() => setToast({ message: "", type: "success" }), 3000);
   };
 
-  useEffect(() => { isEmployee ? initEmployee() : loadAll(); }, []);
+  useEffect(() => { isEmployee ? initEmployee() : loadAll(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const initEmployee = async () => {
     try {
@@ -95,6 +95,8 @@ export default function Attendance() {
       showToast("Failed to delete record", "error");
     }
   };
+
+  const empList = isEmployee && myProfile ? [myProfile] : employees;
 
   // ── Export CSV ──────────────────────────────────────────────────────────────
   const handleExportCSV = () => {
@@ -171,8 +173,6 @@ export default function Attendance() {
       return true;
     });
   }, [attendance, employees, search, deptFilter, statusFilter, dateFrom, dateTo, isEmployee, myProfile]);
-
-  const empList = isEmployee && myProfile ? [myProfile] : employees;
 
   return (
     <MainLayout>
