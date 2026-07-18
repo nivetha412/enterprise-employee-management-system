@@ -329,10 +329,11 @@ function BulkActionsBar({ count, onDelete, onExport, onAssignDept, onAssignManag
 }
 
 function Employees() {
-  const [employees, setEmployees]   = useState([]);
-  const [form, setForm]             = useState(emptyForm);
-  const [editingId, setEditingId]   = useState(null);
-  const [loading, setLoading]       = useState(true);
+  const [employees,   setEmployees]   = useState([]);
+  const [departments,  setDepartments] = useState([]);
+  const [form, setForm]               = useState(emptyForm);
+  const [editingId, setEditingId]     = useState(null);
+  const [loading, setLoading]         = useState(true);
   const [search, setSearch]         = useState("");
   const [filterDept, setFilterDept]             = useState("");
   const [filterType, setFilterType]             = useState("");
@@ -350,7 +351,7 @@ function Employees() {
   const [showBulkDeptModal, setShowBulkDeptModal] = useState(false);
   const [showBulkManagerModal, setShowBulkManagerModal] = useState(false);
 
-  useEffect(() => { fetchEmployees(); }, []);
+  useEffect(() => { fetchEmployees(); fetchDepartmentList(); }, []);
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -368,6 +369,13 @@ function Employees() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchDepartmentList = async () => {
+    try {
+      const res = await api.get("/departments");
+      setDepartments(res.data);
+    } catch { /* non-critical */ }
   };
 
   const validate = () => {
@@ -471,8 +479,12 @@ function Employees() {
     }
   };
 
-  const DEPARTMENTS   = ["IT", "HR", "Finance", "Sales", "Marketing"];
-  const DESIGNATIONS  = ["Developer", "Manager", "HR", "Tester"];
+  // Derive unique departments and designations from real employee data
+  const DEPARTMENTS  = [...new Set([
+    ...departments.map(d => d.departmentName),
+    ...employees.map(e => e.department),
+  ].filter(Boolean))].sort();
+  const DESIGNATIONS = [...new Set(employees.map(e => e.designation).filter(Boolean))].sort();
 
   const filtered = employees.filter(emp => {
     const matchSearch = !search ||

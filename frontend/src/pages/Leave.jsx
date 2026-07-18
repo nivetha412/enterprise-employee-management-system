@@ -1,100 +1,65 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import api from "../services/api";
 import MainLayout from "../layouts/MainLayout";
-import { s, Toast, PageHeader, StatCard, EmptyState, SectionHeader, Avatar } from "../styles/ui.jsx";
-import {
-  RiCalendarCheckLine, RiAddLine, RiCheckLine, RiCloseLine,
-  RiDeleteBinLine, RiTimeLine, RiUserLine, RiFilterLine
-} from "react-icons/ri";
+import { Toast } from "../styles/ui.jsx";
 
-const STATUS_CFG = {
-  PENDING:  { color: "#d97706", bg: "#fef3c7", dot: "#d97706" },
-  APPROVED: { color: "#059669", bg: "#d1fae5", dot: "#059669" },
-  REJECTED: { color: "#dc2626", bg: "#fee2e2", dot: "#dc2626" },
-};
+import LeaveHeader      from "../components/leave/LeaveHeader.jsx";
+import LeaveKPICards    from "../components/leave/LeaveKPICards.jsx";
+import LeaveAnalytics   from "../components/leave/LeaveAnalytics.jsx";
+import LeaveToolbar     from "../components/leave/LeaveToolbar.jsx";
+import LeaveTable       from "../components/leave/LeaveTable.jsx";
+import LeaveDetailModal from "../components/leave/LeaveDetailModal.jsx";
 
-const TYPE_CFG = {
-  CASUAL_LEAVE:    { color: "#d97706", bg: "#fef3c7" },
-  SICK_LEAVE:      { color: "#dc2626", bg: "#fee2e2" },
-  EARNED_LEAVE:    { color: "#1e40af", bg: "#dbeafe" },
-  COMP_OFF:        { color: "#7c3aed", bg: "#ede9fe" },
-  WORK_FROM_HOME:  { color: "#0891b2", bg: "#cffafe" },
-  LOSS_OF_PAY:     { color: "#64748b", bg: "#f1f5f9" },
-};
+export default function Leave() {
+  const [leaves,      setLeaves]      = useState([]);
+  const [employees,   setEmployees]   = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [toast,       setToast]       = useState({ message: "", type: "success" });
 
-const LEAVE_TYPES = ["CASUAL_LEAVE", "SICK_LEAVE", "EARNED_LEAVE", "COMP_OFF", "WORK_FROM_HOME", "LOSS_OF_PAY"];
-const PRIORITIES  = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
+  // Filters
+  const [search,       setSearch]       = useState("");
+  const [deptFilter,   setDeptFilter]   = useState("");
+  const [typeFilter,   setTypeFilter]   = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [dateFrom,     setDateFrom]     = useState("");
+  const [dateTo,       setDateTo]       = useState("");
 
-function Leave() {
-  const [leaves, setLeaves]       = useState([]);
-  const [employees, setEmployees] = useState([]);
-  const [form, setForm]           = useState({ employeeId: "", leaveType: "CASUAL_LEAVE", startDate: "", endDate: "", reason: "", priority: "MEDIUM", backupEmployeeId: "" });
-  const [loading, setLoading]     = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [filterStatus, setFilterStatus] = useState("");
-  const [filterType, setFilterType]     = useState("");
-  const [toast, setToast]         = useState({ message: "", type: "success" });
-  const role = localStorage.getItem("role");
+  // Detail modal
+  const [viewLeave, setViewLeave] = useState(null);
 
-  useEffect(() => { fetchLeaves(); fetchEmployees(); }, []);
+  const today = new Date().toISOString().slice(0, 10);
 
-  const showToast = (message, type = "success") => {
-    setToast({ message, type });
+  const showToast = (msg, type = "success") => {
+    setToast({ message: msg, type });
     setTimeout(() => setToast({ message: "", type: "success" }), 3000);
   };
 
-  const fetchLeaves = async () => {
+  const loadAll = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/leave");
-      setLeaves(res.data);
-    } catch (e) {
-      console.error(e);
-      showToast("Failed to load leave requests", "error");
+      const [leaveRes, empRes, deptRes] = await Promise.all([
+        api.get("/leave"),
+        api.get("/employees"),
+        api.get("/departments"),
+      ]);
+      setLeaves(leaveRes.data);
+      setEmployees(empRes.data);
+      setDepartments(deptRes.data);
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to load leave data", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchEmployees = async () => {
-    try {
-      const res = await api.get("/employees");
-      setEmployees(res.data);
-    } catch (e) { console.error(e); }
-  };
+  useEffect(() => { loadAll(); }, []);
 
-  const submitLeave = async (e) => {
-    e.preventDefault();
-    if (!form.employeeId || !form.startDate || !form.endDate) {
-      showToast("Please fill all required fields", "error");
-      return;
-    }
-    setSubmitting(true);
+  // ── Update status (approve / reject) ───────────────────────────────────────
+  const updateStatus = async (lv, status, remarks = "") => {
     try {
-      await api.post("/leave/apply", {
-        employeeId:       Number(form.employeeId),
-        leaveType:        form.leaveType,
-        startDate:        form.startDate,
-        endDate:          form.endDate,
-        reason:           form.reason,
-        priority:         form.priority,
-        backupEmployeeId: Number(form.backupEmployeeId),
-      });
-      setForm({ employeeId: "", leaveType: "CASUAL_LEAVE", startDate: "", endDate: "", reason: "", priority: "MEDIUM", backupEmployeeId: "" });
-      fetchLeaves();
-      showToast("Leave request submitted successfully");
-    } catch (e) {
-      console.error(e);
-      showToast("Failed to submit leave request", "error");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const updateStatus = async (id, status) => {
-    const lv = leaves.find(l => l.id === id);
-    try {
-      await api.put(`/leave/${id}`, {
+      await api.put(`/leave/${lv.id}`, {
         employeeId:       lv.employeeId,
         leaveType:        lv.leaveType,
         startDate:        lv.startDate,
@@ -103,368 +68,150 @@ function Leave() {
         priority:         lv.priority,
         backupEmployeeId: lv.backupEmployeeId,
         status,
+        managerRemarks:   remarks || lv.managerRemarks,
+        hrRemarks:        lv.hrRemarks,
       });
-      fetchLeaves();
+      await loadAll();
+      // Refresh the open modal with updated data
+      if (viewLeave?.id === lv.id) setViewLeave(null);
       showToast(`Leave ${status.toLowerCase()} successfully`);
-    } catch (e) {
-      console.error(e);
-      showToast("Failed to update status", "error");
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to update leave status", "error");
     }
   };
+
+  const handleApprove = (lv, remarks) => updateStatus(lv, "APPROVED", remarks);
+  const handleReject  = (lv, remarks) => updateStatus(lv, "REJECTED", remarks);
 
   const deleteLeave = async (id) => {
     if (!window.confirm("Delete this leave request?")) return;
     try {
       await api.delete(`/leave/${id}`);
-      fetchLeaves();
+      if (viewLeave?.id === id) setViewLeave(null);
+      await loadAll();
       showToast("Leave request deleted");
-    } catch (e) {
-      console.error(e);
-      showToast("Failed to delete", "error");
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to delete leave request", "error");
     }
   };
 
-  const canApprove = role === "ADMIN" || role === "HR";
-
-  // Derived stats
-  const pendingCount  = leaves.filter(l => l.status === "PENDING").length;
-  const approvedCount = leaves.filter(l => l.status === "APPROVED").length;
-  const rejectedCount = leaves.filter(l => l.status === "REJECTED").length;
-
-  const filtered = leaves.filter(lv => {
-    const matchStatus = !filterStatus || lv.status === filterStatus;
-    const matchType   = !filterType   || lv.leaveType === filterType;
-    return matchStatus && matchType;
-  });
-
-  const getEmp = (id) => employees.find(e => e.id === id || e.id === Number(id));
-
-  const calcDays = (start, end) => {
-    if (!start || !end) return "—";
-    return Math.max(1, Math.round((new Date(end) - new Date(start)) / 86400000) + 1);
+  // ── Export CSV ──────────────────────────────────────────────────────────────
+  const handleExportCSV = () => {
+    const getEmp = id => employees.find(e => e.id === id || e.id === Number(id));
+    const rows = [
+      ["ID", "Employee Code", "Employee Name", "Department", "Leave Type", "Start Date", "End Date", "Days", "Reason", "Status", "Applied Date", "Priority"],
+      ...filtered.map(l => {
+        const emp = getEmp(l.employeeId);
+        return [
+          l.id,
+          emp?.employeeCode || `#${l.employeeId}`,
+          emp ? `${emp.firstName} ${emp.lastName}` : `Employee #${l.employeeId}`,
+          emp?.department || "",
+          (l.leaveType || "").replace(/_/g, " "),
+          l.startDate,
+          l.endDate,
+          l.totalDays ?? "",
+          l.reason || "",
+          l.status,
+          l.appliedDate || "",
+          l.priority || "",
+        ];
+      }),
+    ];
+    const csv  = rows.map(r => r.map(v => `"${v}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href = url; a.download = `leave_report_${today}.csv`;
+    a.click(); URL.revokeObjectURL(url);
   };
 
-  const onFocus = e => { e.target.style.borderColor = "#3b82f6"; e.target.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.12)"; };
-  const onBlur  = e => { e.target.style.borderColor = "var(--border)"; e.target.style.boxShadow = "none"; };
+  // ── KPI ─────────────────────────────────────────────────────────────────────
+  const kpi = useMemo(() => ({
+    total:    leaves.length,
+    pending:  leaves.filter(l => l.status === "PENDING").length,
+    approved: leaves.filter(l => l.status === "APPROVED").length,
+    rejected: leaves.filter(l => l.status === "REJECTED").length,
+    onLeave:  leaves.filter(l =>
+      l.status === "APPROVED" &&
+      String(l.startDate) <= today &&
+      String(l.endDate)   >= today
+    ).length,
+  }), [leaves, today]);
+
+  // ── Filtered records ────────────────────────────────────────────────────────
+  const filtered = useMemo(() => {
+    const getEmp = id => employees.find(e => e.id === id || e.id === Number(id));
+    return leaves.filter(l => {
+      const emp  = getEmp(l.employeeId);
+      const name = emp ? `${emp.firstName} ${emp.lastName}`.toLowerCase() : "";
+      const code = (emp?.employeeCode || "").toLowerCase();
+      const dept = (emp?.department   || "").toLowerCase();
+
+      if (search       && !name.includes(search.toLowerCase()) && !code.includes(search.toLowerCase())) return false;
+      if (deptFilter   && dept !== deptFilter.toLowerCase())   return false;
+      if (typeFilter   && l.leaveType !== typeFilter)          return false;
+      if (statusFilter && l.status    !== statusFilter)        return false;
+      if (dateFrom     && String(l.startDate) < dateFrom)      return false;
+      if (dateTo       && String(l.endDate)   > dateTo)        return false;
+      return true;
+    });
+  }, [leaves, employees, search, deptFilter, typeFilter, statusFilter, dateFrom, dateTo]);
 
   return (
     <MainLayout>
       <Toast message={toast.message} type={toast.type} />
 
-      {/* Page Header */}
-      <PageHeader
-        icon={<RiCalendarCheckLine size={22} color="#fff" />}
-        title="Leave Management"
-        subtitle="Submit, review, and manage employee leave requests"
+      <LeaveHeader
+        totalRequests={leaves.length}
+        pendingCount={kpi.pending}
+        onRefresh={loadAll}
+        onExportCSV={handleExportCSV}
+        onPrint={() => window.print()}
       />
 
-      {/* Stat Row */}
-      <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "20px" }}>
-        <StatCard label="Total Requests" value={leaves.length}   color="#1e40af" bg="#dbeafe" icon={<RiCalendarCheckLine color="#1e40af" size={18} />} />
-        <StatCard label="Pending"        value={pendingCount}    color="#d97706" bg="#fef3c7" icon={<RiTimeLine color="#d97706" size={18} />} />
-        <StatCard label="Approved"       value={approvedCount}   color="#059669" bg="#d1fae5" icon={<RiCheckLine color="#059669" size={18} />} />
-        <StatCard label="Rejected"       value={rejectedCount}   color="#dc2626" bg="#fee2e2" icon={<RiCloseLine color="#dc2626" size={18} />} />
-      </div>
+      <LeaveKPICards kpi={kpi} loading={loading} />
 
-      {/* Submit Form */}
-      <div style={s.card}>
-        <SectionHeader title="New Leave Request" count="Submit" countColor="#1e40af" countBg="#dbeafe" />
-        <form onSubmit={submitLeave}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "14px", marginBottom: "16px" }}>
+      <LeaveAnalytics
+        leaves={leaves}
+        employees={employees}
+        departments={departments}
+        today={today}
+      />
 
-            <div>
-              <label style={s.label}>Employee *</label>
-              <div style={{ position: "relative" }}>
-                <RiUserLine size={14} color="var(--text-muted)"
-                  style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
-                <select
-                  style={{ ...s.select, width: "100%", paddingLeft: "30px" }}
-                  value={form.employeeId}
-                  onChange={e => setForm(f => ({ ...f, employeeId: e.target.value }))}
-                  onFocus={onFocus} onBlur={onBlur}
-                  required
-                >
-                  <option value="">— Select Employee —</option>
-                  {employees.map(emp => (
-                    <option key={emp.id} value={emp.id}>
-                      {emp.firstName} {emp.lastName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+      <LeaveToolbar
+        search={search}             onSearch={setSearch}
+        deptFilter={deptFilter}     onDeptFilter={setDeptFilter}
+        typeFilter={typeFilter}     onTypeFilter={setTypeFilter}
+        statusFilter={statusFilter} onStatusFilter={setStatusFilter}
+        dateFrom={dateFrom}         onDateFrom={setDateFrom}
+        dateTo={dateTo}             onDateTo={setDateTo}
+        departments={departments}
+        resultCount={filtered.length}
+      />
 
-            <div>
-              <label style={s.label}>Leave Type</label>
-              <select
-                style={{ ...s.select, width: "100%" }}
-                value={form.leaveType}
-                onChange={e => setForm(f => ({ ...f, leaveType: e.target.value }))}
-                onFocus={onFocus} onBlur={onBlur}
-              >
-                {LEAVE_TYPES.map(t => <option key={t} value={t}>{t.replace(/_/g, " ")}</option>)}
-              </select>
-            </div>
+      <LeaveTable
+        records={filtered}
+        employees={employees}
+        loading={loading}
+        onView={setViewLeave}
+        onApprove={lv => handleApprove(lv, "")}
+        onReject={lv  => handleReject(lv, "")}
+        onDelete={deleteLeave}
+      />
 
-            <div>
-              <label style={s.label}>Start Date *</label>
-              <input type="date" style={s.input}
-                value={form.startDate}
-                onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))}
-                onFocus={onFocus} onBlur={onBlur}
-                required />
-            </div>
-
-            <div>
-              <label style={s.label}>End Date *</label>
-              <input type="date" style={s.input}
-                value={form.endDate}
-                min={form.startDate}
-                onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))}
-                onFocus={onFocus} onBlur={onBlur}
-                required />
-            </div>
-
-            <div style={{ gridColumn: "1 / -1" }}>
-              <label style={s.label}>Reason</label>
-              <input type="text" style={s.input}
-                placeholder="Brief reason for leave (optional)…"
-                value={form.reason}
-                onChange={e => setForm(f => ({ ...f, reason: e.target.value }))}
-                onFocus={onFocus} onBlur={onBlur} />
-            </div>
-
-            <div>
-              <label style={s.label}>Priority</label>
-              <select
-                style={{ ...s.select, width: "100%" }}
-                value={form.priority}
-                onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}
-                onFocus={onFocus} onBlur={onBlur}
-              >
-                {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>
-
-            <div>
-              <label style={s.label}>Backup Employee *</label>
-              <div style={{ position: "relative" }}>
-                <RiUserLine size={14} color="var(--text-muted)"
-                  style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
-                <select
-                  style={{ ...s.select, width: "100%", paddingLeft: "30px" }}
-                  value={form.backupEmployeeId}
-                  onChange={e => setForm(f => ({ ...f, backupEmployeeId: e.target.value }))}
-                  onFocus={onFocus} onBlur={onBlur}
-                  required
-                >
-                  <option value="">— Select Backup —</option>
-                  {employees
-                    .filter(emp => String(emp.id) !== String(form.employeeId))
-                    .map(emp => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.firstName} {emp.lastName}
-                      </option>
-                    ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Duration preview */}
-          {form.startDate && form.endDate && (
-            <div style={{
-              display: "inline-flex", alignItems: "center", gap: "8px",
-              padding: "8px 14px", borderRadius: "10px",
-              background: "#eff6ff", border: "1px solid #bfdbfe",
-              fontSize: "12.5px", fontWeight: 600, color: "#1e40af",
-              marginBottom: "14px"
-            }}>
-              <RiCalendarCheckLine size={14} />
-              {calcDays(form.startDate, form.endDate)} day{calcDays(form.startDate, form.endDate) !== 1 ? "s" : ""} requested
-            </div>
-          )}
-
-          <div style={{ paddingTop: "4px" }}>
-            <button type="submit" style={s.btnPrimary} disabled={submitting}
-              onMouseEnter={e => e.currentTarget.style.opacity = "0.88"}
-              onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
-              <RiAddLine size={15} />
-              {submitting ? "Submitting…" : "Submit Request"}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* Leave Table */}
-      <div style={s.card}>
-        <SectionHeader title="Leave Requests" count={filtered.length} countColor="#1e40af" countBg="#dbeafe">
-          <select style={{ ...s.select, minWidth: "130px", fontSize: "13px" }}
-            value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-            <option value="">All Statuses</option>
-            <option value="PENDING">Pending</option>
-            <option value="APPROVED">Approved</option>
-            <option value="REJECTED">Rejected</option>
-          </select>
-          <select style={{ ...s.select, minWidth: "130px", fontSize: "13px" }}
-            value={filterType} onChange={e => setFilterType(e.target.value)}>
-            <option value="">All Types</option>
-            {LEAVE_TYPES.map(t => <option key={t} value={t}>{t.replace(/_/g, " ")}</option>)}
-          </select>
-        </SectionHeader>
-
-        <div style={{ overflowX: "auto", borderRadius: "10px", border: "1px solid var(--border)" }}>
-          <table style={s.table}>
-            <thead>
-              <tr>
-                {["#", "Employee", "Type", "Duration", "Days", "Reason", "Status", "Actions"].map(h => (
-                  <th key={h} style={s.th}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                [...Array(4)].map((_, i) => (
-                  <tr key={i}>
-                    {[...Array(8)].map((_, j) => (
-                      <td key={j} style={s.td}>
-                        <div className="skeleton" style={{ height: "14px", borderRadius: "6px", width: j === 1 ? "130px" : "80px" }} />
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              ) : filtered.length === 0 ? (
-                <tr><td colSpan={8}>
-                  <EmptyState
-                    icon="📋"
-                    title={filterStatus || filterType ? "No requests match your filters" : "No leave requests yet"}
-                    subtitle={filterStatus || filterType ? "Try adjusting your filters" : "Submit a leave request using the form above"}
-                  />
-                </td></tr>
-              ) : filtered.map(lv => {
-                const sc  = STATUS_CFG[lv.status] || STATUS_CFG.PENDING;
-                const tc  = TYPE_CFG[lv.leaveType] || { color: "#64748b", bg: "#f1f5f9" };
-                const emp = getEmp(lv.employeeId);
-                const days = calcDays(lv.startDate, lv.endDate);
-                return (
-                  <tr key={lv.id}
-                    style={{ transition: "background 0.12s" }}
-                    onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
-                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-
-                    <td style={s.td}>
-                      <span style={{
-                        fontWeight: 700, fontSize: "11.5px", color: "var(--text-muted)",
-                        background: "#f1f5f9", padding: "2px 7px", borderRadius: "5px"
-                      }}>#{lv.id}</span>
-                    </td>
-
-                    <td style={s.td}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        {emp ? (
-                          <>
-                            <Avatar name={`${emp.firstName} ${emp.lastName}`} size={30} />
-                            <div>
-                              <div style={{ fontSize: "12.5px", fontWeight: 600 }}>{emp.firstName} {emp.lastName}</div>
-                              <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>{emp.designation || `ID: ${lv.employeeId}`}</div>
-                            </div>
-                          </>
-                        ) : (
-                          <span style={{ fontSize: "12.5px", color: "var(--text-secondary)" }}>Employee #{lv.employeeId}</span>
-                        )}
-                      </div>
-                    </td>
-
-                    <td style={s.td}>
-                      <span style={s.badge(tc.color, tc.bg)}>{lv.leaveType.replace(/_/g, " ")}</span>
-                    </td>
-
-                    <td style={s.td}>
-                      <div style={{ fontSize: "12px", color: "var(--text-primary)", fontWeight: 500 }}>
-                        {lv.startDate}
-                      </div>
-                      <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
-                        → {lv.endDate}
-                      </div>
-                    </td>
-
-                    <td style={s.td}>
-                      <span style={{
-                        fontWeight: 700, fontSize: "13px",
-                        color: "#1e40af", background: "#dbeafe",
-                        padding: "2px 8px", borderRadius: "6px"
-                      }}>
-                        {days}d
-                      </span>
-                    </td>
-
-                    <td style={{ ...s.td, maxWidth: "160px" }}>
-                      <span style={{
-                        fontSize: "12px", color: "var(--text-secondary)",
-                        display: "block", overflow: "hidden",
-                        textOverflow: "ellipsis", whiteSpace: "nowrap"
-                      }}>
-                        {lv.reason || <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>No reason</span>}
-                      </span>
-                    </td>
-
-                    <td style={s.td}>
-                      <span style={s.badge(sc.color, sc.bg)}>
-                        <span style={{
-                          width: "5px", height: "5px", borderRadius: "50%",
-                          background: sc.dot, display: "inline-block", marginRight: "4px"
-                        }} />
-                        {lv.status}
-                      </span>
-                    </td>
-
-                    <td style={s.td}>
-                      <div style={{ display: "flex", gap: "5px", flexWrap: "nowrap" }}>
-                        {canApprove && lv.status === "PENDING" && (
-                          <>
-                            <button
-                              style={s.btnSuccess}
-                              onClick={() => updateStatus(lv.id, "APPROVED")}
-                              onMouseEnter={e => { e.currentTarget.style.background = "#d1fae5"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                              onMouseLeave={e => { e.currentTarget.style.background = "#ecfdf5"; e.currentTarget.style.transform = "translateY(0)"; }}
-                            >
-                              <RiCheckLine size={13} /> Approve
-                            </button>
-                            <button
-                              style={s.btnDanger}
-                              onClick={() => updateStatus(lv.id, "REJECTED")}
-                              onMouseEnter={e => { e.currentTarget.style.background = "#fee2e2"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                              onMouseLeave={e => { e.currentTarget.style.background = "#fff5f5"; e.currentTarget.style.transform = "translateY(0)"; }}
-                            >
-                              <RiCloseLine size={13} /> Reject
-                            </button>
-                          </>
-                        )}
-                        <button
-                          style={s.btnDanger}
-                          onClick={() => deleteLeave(lv.id)}
-                          onMouseEnter={e => { e.currentTarget.style.background = "#fee2e2"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = "#fff5f5"; e.currentTarget.style.transform = "translateY(0)"; }}
-                        >
-                          <RiDeleteBinLine size={13} /> Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {filtered.length > 0 && (
-          <div style={{ marginTop: "12px", fontSize: "12px", color: "var(--text-muted)", textAlign: "right" }}>
-            Showing {filtered.length} of {leaves.length} requests
-          </div>
-        )}
-      </div>
+      {viewLeave && (
+        <LeaveDetailModal
+          leave={viewLeave}
+          employees={employees}
+          allLeaves={leaves}
+          onClose={() => setViewLeave(null)}
+          onApprove={handleApprove}
+          onReject={handleReject}
+        />
+      )}
     </MainLayout>
   );
 }
-
-export default Leave;

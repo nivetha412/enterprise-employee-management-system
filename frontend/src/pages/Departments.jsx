@@ -1,303 +1,245 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import api from "../services/api";
 import MainLayout from "../layouts/MainLayout";
-import { s, Toast, PageHeader, StatCard, EmptyState, SectionHeader, Field } from "../styles/ui.jsx";
-import {
-  RiBuildingLine, RiAddLine, RiEditLine, RiDeleteBinLine,
-  RiCheckLine, RiCloseLine, RiTeamLine, RiBarChartLine
-} from "react-icons/ri";
+import { Toast } from "../styles/ui.jsx";
+import DeptHeader     from "../components/departments/DeptHeader";
+import DeptKPICards   from "../components/departments/DeptKPICards";
+import DeptToolbar    from "../components/departments/DeptToolbar";
+import DeptGrid       from "../components/departments/DeptGrid";
+import DeptSidePanel  from "../components/departments/DeptSidePanel";
+import DeptFormModal  from "../components/departments/DeptFormModal";
+import DeptViewModal  from "../components/departments/DeptViewModal";
 
-const DEPT_PALETTE = [
-  { accent: "#1e40af", bg: "#dbeafe", light: "#eff6ff" },
-  { accent: "#7c3aed", bg: "#ede9fe", light: "#f5f3ff" },
-  { accent: "#059669", bg: "#d1fae5", light: "#ecfdf5" },
-  { accent: "#d97706", bg: "#fef3c7", light: "#fffbeb" },
-  { accent: "#0891b2", bg: "#cffafe", light: "#ecfeff" },
-  { accent: "#dc2626", bg: "#fee2e2", light: "#fff5f5" },
-  { accent: "#0d9488", bg: "#ccfbf1", light: "#f0fdfa" },
-  { accent: "#ea580c", bg: "#ffedd5", light: "#fff7ed" },
-];
+const EMPTY_FORM = { departmentName: "", departmentCode: "", description: "", managerName: "", location: "" };
 
-function Departments() {
-  const [departments, setDepartments]   = useState([]);
-  const [departmentName, setDepartmentName] = useState("");
-  const [editingId, setEditingId]       = useState(null);
-  const [nameError, setNameError]       = useState("");
-  const [toast, setToast]               = useState({ message: "", type: "success" });
+export default function Departments() {
+  const [departments, setDepartments] = useState([]);
+  const [employees,   setEmployees]   = useState([]);
+  const [attendance,  setAttendance]  = useState([]);
+  const [leaves,      setLeaves]      = useState([]);
+  const [loading,     setLoading]     = useState(true);
 
-  useEffect(() => { fetchDepartments(); }, []);
+  const [form,       setForm]       = useState(EMPTY_FORM);
+  const [editingId,  setEditingId]  = useState(null);
+  const [formErrors, setFormErrors] = useState({});
+  const [modalOpen,  setModalOpen]  = useState(false);
+  const [viewDept,   setViewDept]   = useState(null);
 
-  const showToast = (message, type = "success") => {
+  const [toast,  setToast]  = useState({ message: "", type: "success" });
+  const [search, setSearch] = useState("");
+  const [sort,   setSort]   = useState("name-asc");
+  const [filter, setFilter] = useState("all"); // all | active | inactive
+
+  const showToast = useCallback((message, type = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast({ message: "", type: "success" }), 3000);
-  };
+  }, []);
 
-  const fetchDepartments = async () => {
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
     try {
-      const response = await api.get("/departments");
-      setDepartments(response.data);
-    } catch (error) {
-      console.error(error);
-      showToast("Failed to load departments", "error");
+      const [dRes, eRes, aRes, lRes] = await Promise.all([
+        api.get("/departments"),
+        api.get("/employees"),
+        api.get("/attendance"),
+        api.get("/leave"),
+      ]);
+      setDepartments(dRes.data);
+      setEmployees(eRes.data);
+      setAttendance(aRes.data);
+      setLeaves(lRes.data);
+    } catch {
+      showToast("Failed to load data", "error");
+    } finally {
+      setLoading(false);
     }
+  }, [showToast]);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  // ── Derived lookups ────────────────────────────────────────────────────────
+  const empByDept = useMemo(() => {
+    const map = {};
+    employees.forEach(e => {
+      const key = (e.department || "").toLowerCase().trim();
+      if (!map[key]) map[key] = [];
+      map[key].push(e);
+    });
+    return map;
+  }, [employees]);
+
+  const getDeptEmployees = useCallback(
+    (dept) => empByDept[(dept.departmentName || "").toLowerCase().trim()] || [],
+    [empByDept]
+  );
+
+  // ── CRUD ───────────────────────────────────────────────────────────────────
+  const validate = () => {
+    const errs = {};
+    if (!form.departmentName.trim()) errs.departmentName = "Department name is required";
+    return errs;
   };
 
-  const createDepartment = async () => {
-    if (!departmentName.trim()) { setNameError("Department name is required"); return; }
+  const saveDepartment = async () => {
+    const errs = validate();
+    if (Object.keys(errs).length) { setFormErrors(errs); return; }
     try {
-      await api.post("/departments", { departmentName });
-      setDepartmentName("");
-      setNameError("");
-      fetchDepartments();
-      showToast("Department created successfully");
-    } catch (error) {
-      console.error(error);
-      showToast("Failed to create department", "error");
-    }
-  };
-
-  const editDepartment = (department) => {
-    setEditingId(department.id);
-    setDepartmentName(department.departmentName);
-    setNameError("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const updateDepartment = async () => {
-    if (!departmentName.trim()) { setNameError("Department name is required"); return; }
-    try {
-      await api.put(`/departments/${editingId}`, { departmentName });
-      setEditingId(null);
-      setDepartmentName("");
-      setNameError("");
-      fetchDepartments();
-      showToast("Department updated successfully");
-    } catch (error) {
-      console.error(error);
-      showToast("Failed to update department", "error");
+      if (editingId) {
+        await api.put(`/departments/${editingId}`, form);
+        showToast("Department updated successfully");
+      } else {
+        await api.post("/departments", form);
+        showToast("Department created successfully");
+      }
+      resetModal();
+      fetchAll();
+    } catch {
+      showToast(editingId ? "Failed to update department" : "Failed to create department", "error");
     }
   };
 
   const deleteDepartment = async (id, name) => {
-    if (!window.confirm(`Delete department "${name}"?`)) return;
+    if (!window.confirm(`Delete department "${name}"? This cannot be undone.`)) return;
     try {
       await api.delete(`/departments/${id}`);
-      fetchDepartments();
+      fetchAll();
       showToast("Department deleted");
-    } catch (error) {
-      console.error(error);
+      if (viewDept?.id === id) setViewDept(null);
+    } catch {
       showToast("Failed to delete department", "error");
     }
   };
 
-  const cancelEdit = () => { setEditingId(null); setDepartmentName(""); setNameError(""); };
+  // ── Modal helpers ──────────────────────────────────────────────────────────
+  const openAdd = () => {
+    setEditingId(null); setForm(EMPTY_FORM); setFormErrors({}); setModalOpen(true);
+  };
+  const openEdit = (dept) => {
+    setEditingId(dept.id);
+    setForm({
+      departmentName: dept.departmentName || "",
+      departmentCode: dept.departmentCode || "",
+      description:    dept.description    || "",
+      managerName:    dept.managerName    || "",
+      location:       dept.location       || "",
+    });
+    setFormErrors({});
+    setModalOpen(true);
+  };
+  const resetModal = () => {
+    setModalOpen(false); setEditingId(null); setForm(EMPTY_FORM); setFormErrors({});
+  };
+  const handleFormChange = (field, value) => {
+    setForm(f => ({ ...f, [field]: value }));
+    if (formErrors[field]) setFormErrors(e => ({ ...e, [field]: "" }));
+  };
 
-  const onFocus = e => { e.target.style.borderColor = "#3b82f6"; e.target.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.12)"; };
-  const onBlur  = e => { e.target.style.borderColor = nameError ? "var(--danger)" : "var(--border)"; e.target.style.boxShadow = "none"; };
+  // ── Export ─────────────────────────────────────────────────────────────────
+  const handleExport = () => {
+    const rows = [
+      "ID,Code,Department Name,Manager,Location,Employees,Status,Created",
+      ...departments.map(d => {
+        const count = getDeptEmployees(d).length;
+        return [d.id, d.departmentCode || "", d.departmentName, d.managerName || "",
+          d.location || "", count, d.active === false ? "Inactive" : "Active",
+          d.createdDate || ""].join(",");
+      }),
+    ];
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([rows.join("\n")], { type: "text/csv" }));
+    a.download = "departments.csv";
+    a.click();
+    showToast("Export downloaded");
+  };
+
+  // ── Filtered + sorted ──────────────────────────────────────────────────────
+  const filtered = useMemo(() => {
+    let list = departments.filter(d => {
+      const matchSearch = !search ||
+        (d.departmentName || "").toLowerCase().includes(search.toLowerCase()) ||
+        (d.departmentCode || "").toLowerCase().includes(search.toLowerCase()) ||
+        (d.managerName    || "").toLowerCase().includes(search.toLowerCase());
+      const matchFilter =
+        filter === "all"      ? true :
+        filter === "active"   ? d.active !== false :
+        filter === "inactive" ? d.active === false : true;
+      return matchSearch && matchFilter;
+    });
+    if (sort === "name-asc")   list = [...list].sort((a, b) => a.departmentName.localeCompare(b.departmentName));
+    if (sort === "name-desc")  list = [...list].sort((a, b) => b.departmentName.localeCompare(a.departmentName));
+    if (sort === "emp-desc")   list = [...list].sort((a, b) => getDeptEmployees(b).length - getDeptEmployees(a).length);
+    if (sort === "emp-asc")    list = [...list].sort((a, b) => getDeptEmployees(a).length - getDeptEmployees(b).length);
+    if (sort === "id-asc")     list = [...list].sort((a, b) => a.id - b.id);
+    if (sort === "id-desc")    list = [...list].sort((a, b) => b.id - a.id);
+    return list;
+  }, [departments, search, sort, filter, getDeptEmployees]);
+
+  // ── KPI aggregates ─────────────────────────────────────────────────────────
+  const kpi = useMemo(() => ({
+    total:      departments.length,
+    employees:  employees.length,
+    active:     departments.filter(d => d.active !== false).length,
+    heads:      departments.filter(d => d.managerName?.trim()).length,
+  }), [departments, employees]);
 
   return (
     <MainLayout>
       <Toast message={toast.message} type={toast.type} />
 
-      {/* Page Header */}
-      <PageHeader
-        icon={<RiBuildingLine size={22} color="#fff" />}
-        title="Departments"
-        subtitle={`${departments.length} department${departments.length !== 1 ? "s" : ""} in your organization`}
+      <DeptFormModal
+        open={modalOpen}
+        editingId={editingId}
+        form={form}
+        errors={formErrors}
+        onChange={handleFormChange}
+        onSubmit={saveDepartment}
+        onCancel={resetModal}
       />
 
-      {/* Stat Row */}
-      <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "20px" }}>
-        <StatCard label="Total Departments" value={departments.length} color="#1e40af" bg="#dbeafe" icon={<RiBuildingLine color="#1e40af" size={18} />} />
-        <StatCard label="Active"            value={departments.length} color="#059669" bg="#d1fae5" icon={<RiBarChartLine color="#059669" size={18} />} />
-      </div>
-
-      {/* Form Card */}
-      <div style={{ ...s.card, border: editingId ? "1.5px solid #fde68a" : "1.5px solid #bfdbfe" }}>
-        <SectionHeader
-          title={editingId ? "Edit Department" : "Add New Department"}
-          count={editingId ? "Editing" : "New"}
-          countColor={editingId ? "#d97706" : "#1e40af"}
-          countBg={editingId ? "#fef3c7" : "#dbeafe"}
+      {viewDept && (
+        <DeptViewModal
+          dept={viewDept}
+          deptEmployees={getDeptEmployees(viewDept)}
+          attendance={attendance}
+          leaves={leaves}
+          onClose={() => setViewDept(null)}
+          onEdit={(d) => { setViewDept(null); openEdit(d); }}
+          onDelete={deleteDepartment}
         />
-        <div style={{ display: "flex", gap: "12px", alignItems: "flex-end", flexWrap: "wrap" }}>
-          <Field label="Department Name" error={nameError} span={undefined}>
-            <div style={{ minWidth: "280px" }}>
-              <input
-                style={{
-                  ...s.input,
-                  borderColor: nameError ? "var(--danger)" : "var(--border)",
-                  boxShadow: nameError ? "0 0 0 3px rgba(220,38,38,0.08)" : "none"
-                }}
-                type="text"
-                placeholder="e.g. Engineering, Marketing, Finance…"
-                value={departmentName}
-                onChange={e => { setDepartmentName(e.target.value); if (nameError) setNameError(""); }}
-                onFocus={onFocus}
-                onBlur={onBlur}
-                onKeyDown={e => e.key === "Enter" && (editingId ? updateDepartment() : createDepartment())}
-              />
-              {nameError && <span style={{ color: "var(--danger)", fontSize: "11px", marginTop: "3px", display: "block" }}>{nameError}</span>}
-            </div>
-          </Field>
-          <div style={{ display: "flex", gap: "8px", paddingBottom: nameError ? "18px" : "0" }}>
-            {editingId ? (
-              <>
-                <button style={s.btnPrimary} onClick={updateDepartment}
-                  onMouseEnter={e => e.currentTarget.style.opacity = "0.88"}
-                  onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
-                  <RiCheckLine size={14} /> Update
-                </button>
-                <button style={s.btnGhost} onClick={cancelEdit}>
-                  <RiCloseLine size={14} /> Cancel
-                </button>
-              </>
-            ) : (
-              <button style={s.btnPrimary} onClick={createDepartment}
-                onMouseEnter={e => e.currentTarget.style.opacity = "0.88"}
-                onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
-                <RiAddLine size={14} /> Add Department
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Department Cards Grid */}
-      {departments.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "14px", marginBottom: "20px" }}>
-          {departments.map((dept, index) => {
-            const palette = DEPT_PALETTE[index % DEPT_PALETTE.length];
-            const isEditing = editingId === dept.id;
-            return (
-              <div
-                key={dept.id}
-                style={{
-                  background: "#fff",
-                  border: `1px solid ${isEditing ? palette.accent + "66" : "var(--border)"}`,
-                  borderRadius: "14px",
-                  padding: "20px",
-                  boxShadow: isEditing
-                    ? `0 0 0 3px ${palette.accent}22, 0 4px 16px rgba(0,0,0,0.06)`
-                    : "0 1px 4px rgba(0,0,0,0.05)",
-                  borderTop: `3px solid ${palette.accent}`,
-                  transition: "transform 0.18s, box-shadow 0.18s",
-                  cursor: "default"
-                }}
-                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.1)"; }}
-                onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = isEditing ? `0 0 0 3px ${palette.accent}22, 0 4px 16px rgba(0,0,0,0.06)` : "0 1px 4px rgba(0,0,0,0.05)"; }}
-              >
-                {/* Icon */}
-                <div style={{
-                  width: "42px", height: "42px", borderRadius: "11px",
-                  background: palette.bg, display: "flex", alignItems: "center",
-                  justifyContent: "center", marginBottom: "12px"
-                }}>
-                  <RiBuildingLine size={20} color={palette.accent} />
-                </div>
-
-                <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--text-primary)", marginBottom: "4px" }}>
-                  {dept.departmentName}
-                </div>
-                <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginBottom: "16px" }}>
-                  ID #{dept.id}
-                </div>
-
-                <div style={{ display: "flex", gap: "6px" }}>
-                  <button
-                    style={{ ...s.btnWarning, flex: 1, justifyContent: "center" }}
-                    onClick={() => editDepartment(dept)}
-                    onMouseEnter={e => { e.currentTarget.style.background = "#fef3c7"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "#fffbeb"; e.currentTarget.style.transform = "translateY(0)"; }}
-                  >
-                    <RiEditLine size={13} /> Edit
-                  </button>
-                  <button
-                    style={{ ...s.btnDanger, flex: 1, justifyContent: "center" }}
-                    onClick={() => deleteDepartment(dept.id, dept.departmentName)}
-                    onMouseEnter={e => { e.currentTarget.style.background = "#fee2e2"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "#fff5f5"; e.currentTarget.style.transform = "translateY(0)"; }}
-                  >
-                    <RiDeleteBinLine size={13} /> Delete
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
       )}
 
-      {/* Table Card */}
-      <div style={s.card}>
-        <SectionHeader title="All Departments" count={departments.length} countColor="#7c3aed" countBg="#ede9fe" />
+      <DeptHeader onAdd={openAdd} total={kpi.total} />
 
-        <div style={{ overflowX: "auto", borderRadius: "10px", border: "1px solid var(--border)" }}>
-          <table style={s.table}>
-            <thead>
-              <tr>
-                {["#", "Department Name", "Color", "Actions"].map(h => (
-                  <th key={h} style={s.th}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {departments.length === 0 ? (
-                <tr><td colSpan={4}>
-                  <EmptyState icon="🏢" title="No departments yet" subtitle="Add your first department above" />
-                </td></tr>
-              ) : departments.map((dept, index) => {
-                const palette = DEPT_PALETTE[index % DEPT_PALETTE.length];
-                return (
-                  <tr key={dept.id}
-                    style={{ transition: "background 0.12s" }}
-                    onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
-                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                    <td style={s.td}>
-                      <span style={{
-                        fontWeight: 700, fontSize: "12px", color: "var(--text-muted)",
-                        background: "#f1f5f9", padding: "2px 8px", borderRadius: "6px"
-                      }}>#{dept.id}</span>
-                    </td>
-                    <td style={s.td}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <div style={{
-                          width: "32px", height: "32px", borderRadius: "8px",
-                          background: palette.bg, display: "flex", alignItems: "center", justifyContent: "center"
-                        }}>
-                          <RiBuildingLine size={16} color={palette.accent} />
-                        </div>
-                        <span style={{ fontWeight: 600, fontSize: "13.5px" }}>{dept.departmentName}</span>
-                      </div>
-                    </td>
-                    <td style={s.td}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                        <div style={{ width: "12px", height: "12px", borderRadius: "50%", background: palette.accent }} />
-                        <span style={{ fontSize: "11.5px", color: "var(--text-muted)", fontFamily: "monospace" }}>{palette.accent}</span>
-                      </div>
-                    </td>
-                    <td style={s.td}>
-                      <div style={{ display: "flex", gap: "6px" }}>
-                        <button style={s.btnWarning} onClick={() => editDepartment(dept)}
-                          onMouseEnter={e => { e.currentTarget.style.background = "#fef3c7"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = "#fffbeb"; e.currentTarget.style.transform = "translateY(0)"; }}>
-                          <RiEditLine size={13} /> Edit
-                        </button>
-                        <button style={s.btnDanger} onClick={() => deleteDepartment(dept.id, dept.departmentName)}
-                          onMouseEnter={e => { e.currentTarget.style.background = "#fee2e2"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = "#fff5f5"; e.currentTarget.style.transform = "translateY(0)"; }}>
-                          <RiDeleteBinLine size={13} /> Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+      <DeptKPICards kpi={kpi} loading={loading} />
+
+      <DeptToolbar
+        search={search} onSearch={setSearch}
+        sort={sort}     onSort={setSort}
+        filter={filter} onFilter={setFilter}
+        onExport={handleExport}
+        onRefresh={fetchAll}
+        resultCount={filtered.length}
+      />
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 24, alignItems: "start" }}>
+        <DeptGrid
+          departments={filtered}
+          getDeptEmployees={getDeptEmployees}
+          loading={loading}
+          onView={setViewDept}
+          onEdit={openEdit}
+          onDelete={deleteDepartment}
+          onAdd={openAdd}
+          search={search}
+        />
+        <DeptSidePanel
+          departments={departments}
+          getDeptEmployees={getDeptEmployees}
+          onAdd={openAdd}
+          onExport={handleExport}
+          onRefresh={fetchAll}
+        />
       </div>
     </MainLayout>
   );
 }
-
-export default Departments;

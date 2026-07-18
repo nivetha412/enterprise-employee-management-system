@@ -9,18 +9,17 @@ import InfoWidgets from "../components/InfoWidgets";
 import {
   RiTeamLine, RiBuildingLine, RiUserHeartLine,
   RiTimeLine, RiUserUnfollowLine, RiAlarmWarningLine,
-  RiCalendarCheckLine, RiBriefcaseLine
+  RiCalendarCheckLine
 } from "react-icons/ri";
 
 const CARDS = [
-  { key: "totalEmployees",    title: "Total Employees",       icon: RiTeamLine,           color: "#1e40af", trend: "up",   trendValue: "+4.2%",  description: "All headcount" },
-  { key: "activeEmployees",   title: "Active Employees",      icon: RiUserHeartLine,      color: "#059669", trend: "up",   trendValue: "+2",     description: "Currently active" },
-  { key: "totalDepartments",  title: "Departments",           icon: RiBuildingLine,       color: "#7c3aed", trend: null,   trendValue: undefined, description: "Across org" },
-  { key: "presentToday",      title: "Present Today",         icon: RiTimeLine,           color: "#0891b2", trend: "up",   trendValue: "+3",     description: "Checked in today" },
-  { key: "absentToday",       title: "Absent Today",          icon: RiUserUnfollowLine,   color: "#dc2626", trend: "down", trendValue: "-2",     description: "No check-in" },
-  { key: "lateToday",         title: "Late Arrivals",         icon: RiAlarmWarningLine,   color: "#d97706", trend: "down", trendValue: "-1",     description: "Clocked in late" },
-  { key: "pendingLeaves",     title: "Pending Leaves",        icon: RiCalendarCheckLine,  color: "#ea580c", trend: "up",   trendValue: "+3",     description: "Awaiting approval" },
-  { key: "openPositions",     title: "Open Positions",        icon: RiBriefcaseLine,      color: "#0d9488", trend: "up",   trendValue: "+2",     description: "Active job listings" },
+  { key: "totalEmployees",    title: "Total Employees",  icon: RiTeamLine,          color: "#1e40af", description: "All headcount" },
+  { key: "activeEmployees",   title: "Active Employees", icon: RiUserHeartLine,     color: "#059669", description: "Currently active" },
+  { key: "totalDepartments",  title: "Departments",      icon: RiBuildingLine,      color: "#7c3aed", description: "Across org" },
+  { key: "presentToday",      title: "Present Today",    icon: RiTimeLine,          color: "#0891b2", description: "Checked in today" },
+  { key: "absentToday",       title: "Absent Today",     icon: RiUserUnfollowLine,  color: "#dc2626", description: "No check-in" },
+  { key: "lateToday",         title: "Late Arrivals",    icon: RiAlarmWarningLine,  color: "#d97706", description: "Clocked in late" },
+  { key: "pendingLeaves",     title: "Pending Leaves",   icon: RiCalendarCheckLine, color: "#ea580c", description: "Awaiting approval" },
 ];
 
 function getGreeting() {
@@ -37,7 +36,8 @@ function LiveClock() {
     return () => clearInterval(t);
   }, []);
   return (
-    <span>{now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+    <span>
+      {now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
       {" · "}
       {now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
     </span>
@@ -45,41 +45,46 @@ function LiveClock() {
 }
 
 export default function Dashboard() {
-  const [dashboard, setDashboard] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [dashboard,     setDashboard]     = useState(null);
+  const [pendingLeaves, setPendingLeaves] = useState(null);
+  const [loading,       setLoading]       = useState(true);
 
-  const email = localStorage.getItem("email") || "";
+  const email       = localStorage.getItem("email") || "";
   const displayName = email.split("@")[0] || "Admin";
 
   useEffect(() => {
-    api.get("/reports/dashboard")
-      .then(r => setDashboard(r.data))
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    Promise.all([
+      api.get("/reports/dashboard"),
+      api.get("/leave"),
+    ]).then(([r, l]) => {
+      setDashboard(r.data);
+      setPendingLeaves(l.data.filter(lv => lv.status === "PENDING").length);
+    }).catch(console.error).finally(() => setLoading(false));
   }, []);
 
-  // Merge real data with fallback mock data for demo cards
-  const merged = {
+  const stats = {
     totalEmployees:   dashboard?.totalEmployees   ?? null,
     activeEmployees:  dashboard?.activeEmployees  ?? null,
     totalDepartments: dashboard?.totalDepartments ?? null,
     presentToday:     dashboard?.presentToday     ?? null,
     absentToday:      dashboard?.absentToday      ?? null,
     lateToday:        dashboard?.lateToday        ?? null,
-    pendingLeaves:    dashboard?.pendingLeaves     ?? 3,
-    openPositions:    dashboard?.openPositions     ?? 5,
+    pendingLeaves:    pendingLeaves               ?? null,
   };
+
+  // Compute attendance rate for hero banner
+  const attendanceRate = (stats.presentToday != null && stats.totalEmployees)
+    ? Math.round((Number(stats.presentToday) / Number(stats.totalEmployees)) * 100)
+    : null;
 
   return (
     <MainLayout>
-
       {/* Hero Section */}
       <div className="fade-in" style={{
         background: "linear-gradient(135deg, #1e3a8a 0%, #1e40af 55%, #2563eb 100%)",
         borderRadius: "16px", padding: "28px 32px",
         marginBottom: "24px", position: "relative", overflow: "hidden"
       }}>
-        {/* decorative circles */}
         <div style={{ position: "absolute", top: "-40px", right: "-40px", width: "200px", height: "200px", borderRadius: "50%", background: "rgba(255,255,255,0.05)", pointerEvents: "none" }} />
         <div style={{ position: "absolute", bottom: "-60px", right: "120px", width: "160px", height: "160px", borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
 
@@ -98,9 +103,18 @@ export default function Dashboard() {
             </p>
             <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
               {[
-                { label: "Organization", value: "Enterprise Corp" },
-                { label: "Productivity", value: "94% avg this week" },
-                { label: "Pending Tasks", value: "3 actions needed" },
+                {
+                  label: "Total Employees",
+                  value: loading ? "…" : (stats.totalEmployees ?? "—"),
+                },
+                {
+                  label: "Attendance Today",
+                  value: loading ? "…" : (attendanceRate != null ? `${attendanceRate}%` : "—"),
+                },
+                {
+                  label: "Pending Actions",
+                  value: loading ? "…" : (stats.pendingLeaves != null ? `${stats.pendingLeaves} leave${stats.pendingLeaves !== 1 ? "s" : ""}` : "—"),
+                },
               ].map(item => (
                 <div key={item.label} style={{
                   background: "rgba(255,255,255,0.12)", backdropFilter: "blur(4px)",
@@ -118,15 +132,13 @@ export default function Dashboard() {
 
       {/* KPI Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: "16px", marginBottom: "0" }}>
-        {CARDS.map(({ key, title, icon, color, trend, trendValue, description }) => (
+        {CARDS.map(({ key, title, icon, color, description }) => (
           <DashboardCard
             key={key}
             title={title}
-            value={merged[key]}
+            value={stats[key]}
             icon={icon}
             color={color}
-            trend={trend}
-            trendValue={trendValue}
             description={description}
             loading={loading}
           />
@@ -135,14 +147,12 @@ export default function Dashboard() {
 
       <QuickActions />
 
-      {/* Two-column: Activities + Info Widgets */}
       <div className="dashboard-two-col" style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: "24px", marginTop: "24px", alignItems: "start" }}>
         <RecentActivities />
         <InfoWidgets />
       </div>
 
       <DashboardCharts />
-
     </MainLayout>
   );
 }
