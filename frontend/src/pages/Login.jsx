@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import api from "../services/api";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ROLE_TO_DOMAIN } from "../context/RoleContext";
-import { RiShieldUserLine, RiTeamLine, RiUserLine, RiEyeLine, RiEyeOffLine } from "react-icons/ri";
+import { RiShieldUserLine, RiUserLine, RiEyeLine, RiEyeOffLine } from "react-icons/ri";
 
 const ROLE_TABS = [
   {
@@ -12,19 +12,6 @@ const ROLE_TABS = [
     color: "#1e40af",
     bg: "linear-gradient(135deg, #1e3a8a, #2563eb)",
     hint: "Full system access",
-    field1Label: "Email Address",
-    field1Placeholder: "",
-    field1Type: "email",
-    field2Label: "Password",
-    field2Placeholder: "",
-  },
-  {
-    key: "HR",
-    label: "HR",
-    icon: RiTeamLine,
-    color: "#7c3aed",
-    bg: "linear-gradient(135deg, #5b21b6, #7c3aed)",
-    hint: "HR management access",
     field1Label: "Email Address",
     field1Placeholder: "",
     field1Type: "email",
@@ -49,6 +36,17 @@ const ROLE_TABS = [
 function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  // If already authenticated, redirect to correct dashboard immediately
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const role  = localStorage.getItem("role");
+    if (token && role) {
+      const domainMap = { ADMIN: "admin", EMPLOYEE: "employee" };
+      const domain = domainMap[role] || "employee";
+      navigate(`/${domain}/dashboard`, { replace: true });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const initialRole = searchParams.get("role")?.toUpperCase() || "ADMIN";
   const validRole   = ROLE_TABS.find(t => t.key === initialRole) ? initialRole : "ADMIN";

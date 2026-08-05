@@ -1,25 +1,6 @@
 import { RiAwardLine, RiCalendarLine, RiProjectorLine, RiStarLine } from "react-icons/ri";
 import { useEmployee } from "../../hooks/useEmployee";
 
-function StarBar({ rating }) {
-  return (
-    <div style={{ display: "flex", gap: "2px", marginTop: "6px" }}>
-      {[1, 2, 3, 4, 5].map(i => (
-        <div key={i} style={{
-          height: "4px", flex: 1, borderRadius: "2px",
-          background: i <= Math.round(rating) ? "#d97706" : "#fde68a",
-          transition: "background 0.3s",
-        }} />
-      ))}
-    </div>
-  );
-}
-
-function yearsInCompany(dob) {
-  // Use joiningDate if available; otherwise show "—"
-  return "—";
-}
-
 export default function EmpMyStats() {
   const { emp, loading } = useEmployee();
 

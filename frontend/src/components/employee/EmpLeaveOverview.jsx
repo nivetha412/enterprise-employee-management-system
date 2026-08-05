@@ -101,7 +101,7 @@ export default function EmpLeaveOverview() {
           <div style={{ fontSize: "10.5px", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "12px" }}>
             Leave Breakdown
           </div>
-          {leaveTypes.map(({ type, used, total, color, bg }) => (
+          {leaveTypes.map(({ type, used, total, color }) => (
             <div key={type} style={{ marginBottom: "12px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>

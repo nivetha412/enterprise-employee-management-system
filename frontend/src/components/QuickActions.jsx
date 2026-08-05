@@ -28,9 +28,9 @@ export default function QuickActions() {
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: "12px" }}>
-        {actions.map(({ label, icon: Icon, path, color, bg, gradient }) => (
+        {actions.map(({ label, icon: Icon, path, color, bg, gradient }, idx) => (
           <button
-            key={path}
+            key={label}
             onClick={() => navigate(path)}
             style={{
               display: "flex", flexDirection: "column", alignItems: "center",

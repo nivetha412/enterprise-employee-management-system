@@ -1,130 +1,95 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import api from "../../services/api";
 import MainLayout from "../../layouts/MainLayout";
+import { EmployeeProvider } from "../../context/EmployeeContext";
+import { useEmployee } from "../../hooks/useEmployee";
 import { Toast } from "../../styles/ui.jsx";
+import EmpAttBanner   from "../../components/employee/EmpAttBanner";
+import EmpAttKPICards from "../../components/employee/EmpAttKPICards";
+import EmpAttCalendar from "../../components/employee/EmpAttCalendar";
+import EmpAttHistory  from "../../components/employee/EmpAttHistory";
+import EmpAttTodayCard from "../../components/employee/EmpAttTodayCard";
 
-import EmpAttendanceBanner       from "../../components/employee/EmpAttendanceBanner";
-import EmpAttendanceSummaryCards from "../../components/employee/EmpAttendanceSummaryCards";
-import EmpAttendanceToday        from "../../components/employee/EmpAttendanceToday";
-import EmpAttendanceCalendar     from "../../components/employee/EmpAttendanceCalendar";
-import EmpAttendanceHistory      from "../../components/employee/EmpAttendanceHistory";
-import EmpAttendanceAnalytics    from "../../components/employee/EmpAttendanceAnalytics";
-import EmpAttendanceInsights     from "../../components/employee/EmpAttendanceInsights";
-
-export default function EmployeeAttendance() {
-  const [records, setRecords] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [toast,   setToast]   = useState({ message: "", type: "success" });
+function AttendanceContent() {
+  const { attendance, attStats, todayRecord, loading, reload } = useEmployee();
+  const [busy,  setBusy]  = useState(false);
+  const [toast, setToast] = useState({ message: "", type: "success" });
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast({ message: "", type: "success" }), 3000);
   };
 
-  const fetchRecords = async () => {
-    try {
-      const employeeId = localStorage.getItem("employeeId");
-      if (!employeeId) return;
-      const res = await api.get(`/attendance/employee/${employeeId}`);
-      setRecords(res.data || []);
-    } catch {
-      // components handle empty state
-    }
-  };
-
-  useEffect(() => { fetchRecords(); }, []);
-
-  const todayStr    = new Date().toISOString().slice(0, 10);
-  const todayRecord = records.find(r => r.attendanceDate === todayStr) || null;
-
-  const thisMonth = records.filter(r => r.attendanceDate?.startsWith(todayStr.slice(0, 7)));
-  const stats = {
-    presentDays: thisMonth.filter(r => r.status === "PRESENT").length,
-    absentDays:  thisMonth.filter(r => r.status === "ABSENT").length,
-    lateDays:    thisMonth.filter(r => r.lateArrival).length,
-    leaveDays:   thisMonth.filter(r => r.status === "LEAVE").length,
-    totalHours:  thisMonth.reduce((s, r) => s + (r.workingHours || 0), 0).toFixed(1),
-    workingDays: thisMonth.length || 23,
-  };
-
   const handleCheckIn = async () => {
-    setLoading(true);
+    setBusy(true);
     try {
-      const employeeId = localStorage.getItem("employeeId");
-      if (!employeeId) { showToast("Employee profile not linked", "error"); setLoading(false); return; }
-      await api.post("/attendance/checkin", { employeeId: Number(employeeId) });
-      await fetchRecords();
+      const empId = localStorage.getItem("employeeId");
+      if (!empId) { showToast("Employee profile not linked", "error"); return; }
+      await api.post("/attendance/checkin", { employeeId: Number(empId) });
+      await reload();
       showToast("Check-in recorded successfully ✓");
     } catch (err) {
       showToast(err?.response?.data?.message || "Failed to check in", "error");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setBusy(false); }
   };
 
   const handleCheckOut = async () => {
-    setLoading(true);
+    setBusy(true);
     try {
-      const employeeId = localStorage.getItem("employeeId");
-      if (!employeeId) { showToast("Employee profile not linked", "error"); setLoading(false); return; }
-      await api.post("/attendance/checkout", { employeeId: Number(employeeId) });
-      await fetchRecords();
+      const empId = localStorage.getItem("employeeId");
+      if (!empId) { showToast("Employee profile not linked", "error"); return; }
+      await api.post("/attendance/checkout", { employeeId: Number(empId) });
+      await reload();
       showToast("Check-out recorded successfully ✓");
     } catch (err) {
       showToast(err?.response?.data?.message || "Failed to check out", "error");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setBusy(false); }
   };
 
-  const historyRows = records.length > 0
-    ? records.map(r => ({
-        id:       r.id,
-        date:     r.attendanceDate,
-        checkIn:  r.checkInTime,
-        checkOut: r.checkOutTime,
-        hours:    r.workingHours || 0,
-        status:   r.status,
-        late:     r.lateArrival || false,
-      }))
-    : undefined;
+  const handleExport = () => {
+    const rows = [
+      ["Date", "Check-In", "Check-Out", "Hours", "Status", "Late"],
+      ...attendance.map(r => [
+        r.attendanceDate, r.checkInTime || "", r.checkOutTime || "",
+        r.workingHours?.toFixed(1) || "", r.status, r.lateArrival ? "Yes" : "No",
+      ]),
+    ];
+    const csv  = rows.map(r => r.map(v => `"${v}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href = url;
+    a.download = `my_attendance_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
-    <MainLayout>
+    <>
       <Toast message={toast.message} type={toast.type} />
-
-      {/* Hero banner with check-in / check-out */}
-      <EmpAttendanceBanner
+      <EmpAttBanner
         todayRecord={todayRecord}
         onCheckIn={handleCheckIn}
         onCheckOut={handleCheckOut}
-        loading={loading}
+        loading={busy}
       />
-
-      {/* 6 summary stat cards */}
-      <EmpAttendanceSummaryCards stats={stats} />
-
-      {/* Row 1: Today detail | Calendar */}
-      <div style={{
-        display: "grid", gridTemplateColumns: "1fr 1.6fr",
-        gap: "16px", marginBottom: "16px", alignItems: "start",
-      }}>
-        <EmpAttendanceToday record={todayRecord} />
-        <EmpAttendanceCalendar />
+      <EmpAttKPICards stats={attStats} />
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr", gap: "20px", marginBottom: "20px" }}
+        className="emp-grid-2">
+        <EmpAttTodayCard record={todayRecord} />
+        <EmpAttCalendar attendance={attendance} />
       </div>
+      <EmpAttHistory records={attendance} onExport={handleExport} loading={loading} />
+    </>
+  );
+}
 
-      {/* Row 2: Analytics | Insights + Holidays + Notifications */}
-      <div style={{
-        display: "grid", gridTemplateColumns: "1.6fr 1fr",
-        gap: "16px", marginBottom: "16px", alignItems: "start",
-      }}>
-        <EmpAttendanceAnalytics />
-        <EmpAttendanceInsights />
-      </div>
-
-      {/* Full-width history table */}
-      <EmpAttendanceHistory records={historyRows} />
-
-    </MainLayout>
+export default function EmployeeAttendance() {
+  return (
+    <EmployeeProvider>
+      <MainLayout>
+        <AttendanceContent />
+      </MainLayout>
+    </EmployeeProvider>
   );
 }

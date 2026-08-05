@@ -1,6 +1,6 @@
 import {
   RiCheckboxCircleLine, RiCloseCircleLine, RiAlarmWarningLine,
-  RiCalendarCheckLine, RiTimeLine, RiSunLine,
+  RiCalendarCheckLine, RiTimeLine,
 } from "react-icons/ri";
 
 function DonutRing({ pct, color, size = 64 }) {

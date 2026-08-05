@@ -27,7 +27,7 @@ public class EmployeeController {
         String token = authHeader.replace("Bearer ", "");
         String subject = jwtService.extractEmail(token); // subject is email OR employeeCode
 
-        // Try by email first (Admin/HR who also have an employee record)
+        // Try by email first (Admin who also has an employee record)
         Employee emp = employeeRepository.findByEmail(subject)
                 .orElseGet(() ->
                     // Fall back to employeeCode (Employee login)

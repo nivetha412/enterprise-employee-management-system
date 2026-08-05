@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { RiLoginBoxLine, RiLogoutBoxLine, RiTimeLine } from "react-icons/ri";
-import api from "../../services/api";
+import { RiLoginBoxLine, RiLogoutBoxLine } from "react-icons/ri";
 
 function LiveClock() {
   const [now, setNow] = useState(new Date());

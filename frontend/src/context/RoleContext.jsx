@@ -1,15 +1,13 @@
 import { createContext, useContext, useState, useCallback } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 export const ROLE_TO_DOMAIN = {
   ADMIN:    "admin",
-  HR:       "hr",
   EMPLOYEE: "employee",
 };
 
 export const DOMAIN_TO_ROLE = {
   admin:    "ADMIN",
-  hr:       "HR",
   employee: "EMPLOYEE",
 };
 
@@ -49,26 +47,31 @@ export function useRole() {
 }
 
 /**
- * Drop-in replacement for useNavigate() that automatically
- * prepends /:domain to every path.
+ * Domain-aware navigation hook.
+ * Derives the current domain from the URL pathname (most reliable source).
+ * Falls back to RoleContext domain, then localStorage.
  *
- * Usage:  const navigate = useDomainNav();
- *         navigate("/dashboard");  →  /admin/dashboard
+ * Usage:
+ *   const navigate = useDomainNav();
+ *   navigate("/dashboard");   →  /admin/dashboard  (if logged in as ADMIN)
+ *   navigate("/employees");   →  /admin/employees
  */
 export function useDomainNav() {
   const navigate  = useNavigate();
-  const params    = useParams();
+  const location  = useLocation();
   const { domain: ctxDomain } = useRole();
 
+  // Derive domain from current URL first segment — most reliable on refresh
+  const urlSegment = location.pathname.split("/")[1];
   const domain =
-    params?.domain ||
+    (DOMAIN_TO_ROLE[urlSegment] ? urlSegment : null) ||
     ctxDomain ||
     ROLE_TO_DOMAIN[localStorage.getItem("role")] ||
     "employee";
 
   return useCallback(
     (path, options) => {
-      const clean = path.replace(/^\/(admin|hr|employee)/, "");
+      const clean = path.replace(/^\/(admin|employee)/, "").replace(/^([^/])/, "/$1");
       navigate(`/${domain}${clean}`, options);
     },
     [navigate, domain]

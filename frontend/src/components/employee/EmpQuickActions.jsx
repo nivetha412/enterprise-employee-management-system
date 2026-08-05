@@ -6,34 +6,34 @@ import { useDomainNav } from "../../context/RoleContext";
 
 const ACTIONS = [
   {
-    label: "Apply Leave", icon: RiCalendarCheckLine, path: "/leave",
-    gradient: "linear-gradient(135deg,#1e40af,#3b82f6)",
-    iconBg: "#eff6ff", iconColor: "#1e40af",
-    desc: "Request time off",
-  },
-  {
     label: "View Attendance", icon: RiTimeLine, path: "/attendance",
     gradient: "linear-gradient(135deg,#047857,#10b981)",
     iconBg: "#ecfdf5", iconColor: "#059669",
     desc: "Check your records",
   },
   {
-    label: "Update Profile", icon: RiUserLine, path: "/profile",
+    label: "My Dashboard", icon: RiUserLine, path: "/dashboard",
     gradient: "linear-gradient(135deg,#6d28d9,#8b5cf6)",
     iconBg: "#f5f3ff", iconColor: "#7c3aed",
-    desc: "Edit your info",
+    desc: "Go to home",
   },
   {
-    label: "Download Payslip", icon: RiFileTextLine, path: "/payslip",
-    gradient: "linear-gradient(135deg,#b45309,#f59e0b)",
-    iconBg: "#fffbeb", iconColor: "#d97706",
-    desc: "Get salary slip",
+    label: "Attendance History", icon: RiCalendarCheckLine, path: "/attendance",
+    gradient: "linear-gradient(135deg,#1e40af,#3b82f6)",
+    iconBg: "#eff6ff", iconColor: "#1e40af",
+    desc: "Full history",
   },
   {
-    label: "View Holidays", icon: RiCalendarEventLine, path: "/holidays",
+    label: "Work Schedule", icon: RiCalendarEventLine, path: "/attendance",
     gradient: "linear-gradient(135deg,#0e7490,#06b6d4)",
     iconBg: "#ecfeff", iconColor: "#0891b2",
-    desc: "Company calendar",
+    desc: "View schedule",
+  },
+  {
+    label: "My Reports", icon: RiFileTextLine, path: "/attendance",
+    gradient: "linear-gradient(135deg,#b45309,#f59e0b)",
+    iconBg: "#fffbeb", iconColor: "#d97706",
+    desc: "Download reports",
   },
 ];
 

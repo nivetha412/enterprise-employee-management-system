@@ -62,7 +62,7 @@ public class AuthService {
             );
         }
 
-        // ── ADMIN / HR login: authenticate via User table (email + password) ─
+        // ── ADMIN login: authenticate via User table (email + password) ─
         if (dto.getEmail() == null || dto.getEmail().isBlank()) {
             throw new RuntimeException("Email is required");
         }

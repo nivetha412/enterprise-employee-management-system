@@ -1,50 +1,32 @@
-import MainLayout from "../../layouts/MainLayout";
-import EmpWelcomeBanner      from "../../components/employee/EmpWelcomeBanner";
-import EmpProfileSummary     from "../../components/employee/EmpProfileSummary";
-import EmpAttendanceOverview from "../../components/employee/EmpAttendanceOverview";
-import EmpLeaveOverview      from "../../components/employee/EmpLeaveOverview";
-import EmpQuickActions       from "../../components/employee/EmpQuickActions";
-import EmpMyStats            from "../../components/employee/EmpMyStats";
-import EmpRecentActivities   from "../../components/employee/EmpRecentActivities";
-import EmpUpcomingEvents     from "../../components/employee/EmpUpcomingEvents";
-import EmpAnnouncements      from "../../components/employee/EmpAnnouncements";
-import EmpPerformanceSummary from "../../components/employee/EmpPerformanceSummary";
-import { EmployeeProvider }  from "../../context/EmployeeContext";
-
-const row = (cols, extra = {}) => ({
-  display: "grid",
-  gridTemplateColumns: cols,
-  gap: "16px",
-  marginTop: "16px",
-  alignItems: "start",
-  ...extra,
-});
+import MainLayout           from "../../layouts/MainLayout";
+import { EmployeeProvider } from "../../context/EmployeeContext";
+import EmpDashHero          from "../../components/employee/EmpDashHero";
+import EmpDashKPIRow        from "../../components/employee/EmpDashKPIRow";
+import EmpDashQuickActions  from "../../components/employee/EmpDashQuickActions";
+import EmpDashProfileCard   from "../../components/employee/EmpDashProfileCard";
+import EmpDashAttCard       from "../../components/employee/EmpDashAttCard";
+import EmpDashLeaveCard     from "../../components/employee/EmpDashLeaveCard";
+import EmpDashActivity      from "../../components/employee/EmpDashActivity";
+import EmpDashCalendar      from "../../components/employee/EmpDashCalendar";
 
 export default function EmployeeDashboard() {
   return (
     <EmployeeProvider>
       <MainLayout>
+        <EmpDashHero />
+        <EmpDashKPIRow />
+        <EmpDashQuickActions />
 
-        <EmpWelcomeBanner />
-        <EmpQuickActions />
-
-        <div className="emp-grid-3" style={row("repeat(3, 1fr)")}>
-          <EmpProfileSummary />
-          <EmpAttendanceOverview />
-          <EmpLeaveOverview />
+        <div className="emp-grid-3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "20px", marginTop: "20px" }}>
+          <EmpDashProfileCard />
+          <EmpDashAttCard />
+          <EmpDashLeaveCard />
         </div>
 
-        <div className="emp-grid-2" style={row("1fr 1.7fr")}>
-          <EmpMyStats />
-          <EmpRecentActivities />
+        <div className="emp-grid-2" style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: "20px", marginTop: "20px" }}>
+          <EmpDashActivity />
+          <EmpDashCalendar />
         </div>
-
-        <div className="emp-grid-3" style={row("repeat(3, 1fr)", { marginBottom: "8px" })}>
-          <EmpUpcomingEvents />
-          <EmpAnnouncements />
-          <EmpPerformanceSummary />
-        </div>
-
       </MainLayout>
     </EmployeeProvider>
   );

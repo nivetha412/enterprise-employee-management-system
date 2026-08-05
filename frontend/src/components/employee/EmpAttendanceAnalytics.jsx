@@ -1,7 +1,5 @@
 import { RiBarChartLine } from "react-icons/ri";
 
-const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-
 const TREND_DATA = [
   { month: "Jan", pct: 88, hours: 168 },
   { month: "Feb", pct: 92, hours: 152 },
