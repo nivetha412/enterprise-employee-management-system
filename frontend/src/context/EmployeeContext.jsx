@@ -10,36 +10,52 @@ export function EmployeeProvider({ children }) {
   const [loading,    setLoading]    = useState(true);
   const [error,      setError]      = useState(null);
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     const token = localStorage.getItem("token");
     const role  = localStorage.getItem("role");
     if (!token || role !== "EMPLOYEE") { setLoading(false); return; }
 
     setLoading(true);
-    api.get("/employees/me")
-      .then(empRes => {
-        setEmp(empRes.data);
-        const empId = empRes.data?.id;
-        if (!empId) { setLoading(false); return; }
-        return Promise.all([
-          api.get(`/attendance/employee/${empId}`),
-          api.get("/leave"),
-        ]).then(([attRes, leaveRes]) => {
-          setAttendance(attRes.data || []);
-          setLeaves((leaveRes.data || []).filter(l => l.employeeId === empId));
-        });
-      })
-      .catch(err => setError(err))
-      .finally(() => setLoading(false));
+    setError(null);
+    try {
+      const storedEmployeeId = localStorage.getItem("employeeId");
+      const employeeResponse = storedEmployeeId
+        ? await api.get(`/employees/${storedEmployeeId}`).catch(() => api.get("/employees/me"))
+        : await api.get("/employees/me");
+      const employee = employeeResponse.data;
+      const empId = employee?.id;
+
+      if (!empId) throw new Error("Employee profile could not be resolved");
+      setEmp(employee);
+
+      const [attendanceResult, leaveResult] = await Promise.allSettled([
+        api.get(`/attendance/employee/${empId}`),
+        api.get("/leave"),
+      ]);
+
+      setAttendance(attendanceResult.status === "fulfilled" ? attendanceResult.value.data || [] : []);
+      const allLeaves = leaveResult.status === "fulfilled" ? leaveResult.value.data || [] : [];
+      setLeaves(allLeaves.filter(leave => Number(leave.employeeId) === Number(empId)));
+    } catch (err) {
+      setError(err);
+      setEmp(null);
+      setAttendance([]);
+      setLeaves([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
 
-  const todayStr    = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const monthStr    = todayStr.slice(0, 7);
   const thisMonth   = attendance.filter(r => r.attendanceDate?.startsWith(monthStr));
-  const todayRecord = attendance.find(r => r.attendanceDate === todayStr) || null;
+  const todayRecord = attendance
+    .filter(r => r.attendanceDate === todayStr)
+    .reduce((latest, record) => !latest || record.id > latest.id ? record : latest, null);
 
   const attStats = {
     presentDays: thisMonth.filter(r => r.status === "PRESENT").length,

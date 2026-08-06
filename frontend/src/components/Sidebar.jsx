@@ -45,7 +45,7 @@ export default function Sidebar({ collapsed }) {
       minHeight: "calc(100vh - var(--navbar-height))",
       background: "linear-gradient(180deg, #0f172a 0%, #1e293b 100%)",
       display: "flex", flexDirection: "column",
-      padding: collapsed ? "20px 8px" : "20px 12px",
+      padding: collapsed ? "16px 8px" : "16px 12px",
       flexShrink: 0,
       position: "sticky",
       top: "var(--navbar-height)",
@@ -65,7 +65,7 @@ export default function Sidebar({ collapsed }) {
         </div>
       )}
 
-      <nav style={{ display: "flex", flexDirection: "column", gap: "2px", flex: 1 }}>
+      <nav style={{ display: "flex", flexDirection: "column", gap: "2px", flex: 1, minHeight: 0 }}>
         {items.map(({ path, icon: Icon, label }) => {
           const fullPath = `/${domain}/${path}`;
           const isActive = location.pathname === fullPath;
@@ -78,7 +78,7 @@ export default function Sidebar({ collapsed }) {
                 display: "flex", alignItems: "center",
                 gap: collapsed ? "0" : "10px",
                 justifyContent: collapsed ? "center" : "flex-start",
-                padding: collapsed ? "10px" : "10px 12px",
+                padding: collapsed ? "9px" : "9px 12px",
                 borderRadius: "10px",
                 textDecoration: "none",
                 color: isActive ? "#fff" : "rgba(148,163,184,0.85)",
@@ -116,7 +116,7 @@ export default function Sidebar({ collapsed }) {
 
       {!collapsed && (
         <div style={{
-          margin: "12px 0 8px", padding: "10px 12px", borderRadius: "10px",
+          margin: "8px 0", padding: "9px 12px", borderRadius: "10px",
           background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.2)",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -127,7 +127,7 @@ export default function Sidebar({ collapsed }) {
         </div>
       )}
 
-      <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: "12px" }}>
+      <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: "10px", marginTop: "auto" }}>
         <button
           onClick={logout}
           title={collapsed ? "Sign Out" : ""}
@@ -135,7 +135,7 @@ export default function Sidebar({ collapsed }) {
             width: "100%", display: "flex", alignItems: "center",
             gap: collapsed ? "0" : "10px",
             justifyContent: collapsed ? "center" : "flex-start",
-            padding: collapsed ? "10px" : "10px 12px",
+            padding: collapsed ? "9px" : "9px 12px",
             borderRadius: "10px", background: "rgba(220,38,38,0.12)",
             color: "#fca5a5", border: "1px solid rgba(220,38,38,0.2)",
             cursor: "pointer", fontSize: "13px", fontWeight: 500,

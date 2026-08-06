@@ -20,6 +20,12 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     @Override
     public AttendanceResponseDto checkIn(AttendanceRequestDto dto) {
+        attendanceRepository.findTopByEmployeeIdAndAttendanceDateOrderByIdDesc(dto.getEmployeeId(), LocalDate.now())
+                .ifPresent(record -> {
+                    throw new RuntimeException(record.getCheckOutTime() == null
+                            ? "You are already checked in for today"
+                            : "Today's attendance has already been completed");
+                });
         Attendance attendance = Attendance.builder()
                 .employeeId(dto.getEmployeeId())
                 .attendanceDate(LocalDate.now())
@@ -34,9 +40,9 @@ public class AttendanceServiceImpl implements AttendanceService {
     public AttendanceResponseDto checkOut(AttendanceRequestDto dto) {
         // Find today's most recent check-in for this employee
         Attendance attendance = attendanceRepository
-                .findTopByEmployeeIdAndAttendanceDateOrderByIdDesc(
+                .findTopByEmployeeIdAndAttendanceDateAndCheckOutTimeIsNullOrderByIdDesc(
                         dto.getEmployeeId(), LocalDate.now())
-                .orElseThrow(() -> new RuntimeException("No check-in record found for today"));
+                .orElseThrow(() -> new RuntimeException("No open check-in record found for today"));
 
         attendance.setCheckOutTime(LocalTime.now());
         double workingHours = Duration.between(

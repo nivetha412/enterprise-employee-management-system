@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import MainLayout from "../../layouts/MainLayout";
 import { EmployeeProvider } from "../../context/EmployeeContext";
 import { useEmployee } from "../../hooks/useEmployee";
+import api from "../../services/api";
 import {
   RiUserLine, RiBriefcaseLine, RiBuildingLine, RiPhoneLine,
   RiMailLine, RiShieldCheckLine, RiMoneyDollarCircleLine,
@@ -30,7 +32,26 @@ function InfoRow({ icon: Icon, label, value, color = "#1e40af", bg = "#eff6ff", 
 }
 
 function ProfileContent() {
-  const { emp, loading, attStats, leaveStats } = useEmployee();
+  const { emp: contextEmp, loading, attStats, leaveStats } = useEmployee();
+  const [profileEmp, setProfileEmp] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const employeeId = localStorage.getItem("employeeId");
+    const request = employeeId
+      ? api.get(`/employees/${employeeId}`).catch(() => api.get("/employees/me"))
+      : api.get("/employees/me");
+
+    request
+      .then(response => { if (!cancelled) setProfileEmp(response.data); })
+      .catch(() => { if (!cancelled) setProfileEmp(null); })
+      .finally(() => { if (!cancelled) setProfileLoading(false); });
+
+    return () => { cancelled = true; };
+  }, []);
+
+  const emp = profileEmp || contextEmp;
 
   const fullName = emp ? `${emp.firstName} ${emp.lastName}` : "—";
   const initials = emp ? `${emp.firstName?.[0] ?? ""}${emp.lastName?.[0] ?? ""}`.toUpperCase() : "…";
@@ -65,11 +86,11 @@ function ProfileContent() {
         <div style={{ position: "absolute", top: "-50px", right: "-50px", width: "240px", height: "240px", borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
         <div style={{ display: "flex", alignItems: "center", gap: "20px", position: "relative" }}>
           <div style={{ width: "80px", height: "80px", borderRadius: "20px", background: "linear-gradient(135deg,#60a5fa,#a78bfa)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "28px", fontWeight: 800, color: "#fff", border: "3px solid rgba(255,255,255,0.2)", boxShadow: "0 8px 24px rgba(0,0,0,0.3)", flexShrink: 0 }}>
-            {loading ? "…" : initials}
+            {profileLoading ? "…" : initials}
           </div>
           <div>
-            <h1 style={{ fontSize: "22px", fontWeight: 800, color: "#fff", margin: 0 }}>{loading ? "Loading…" : fullName}</h1>
-            <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "13px", marginTop: "4px" }}>{loading ? "" : `${emp?.designation || ""} · ${emp?.department || ""}`}</p>
+            <h1 style={{ fontSize: "22px", fontWeight: 800, color: "#fff", margin: 0 }}>{profileLoading ? "Loading…" : fullName}</h1>
+            <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "13px", marginTop: "4px" }}>{profileLoading ? "" : `${emp?.designation || ""} · ${emp?.department || ""}`}</p>
             <div style={{ display: "flex", gap: "10px", marginTop: "10px", flexWrap: "wrap" }}>
               <span style={{ fontSize: "11px", fontWeight: 700, color: "#93c5fd", background: "rgba(147,197,253,0.15)", padding: "3px 12px", borderRadius: "20px", border: "1px solid rgba(147,197,253,0.3)" }}>
                 {emp?.employeeCode || "—"}
@@ -106,7 +127,7 @@ function ProfileContent() {
             <p style={{ fontSize: "11px", color: "#94a3b8", marginTop: "2px" }}>Your personal details</p>
           </div>
           <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: "10px" }}>
-            {personalInfo.map(p => <InfoRow key={p.label} {...p} loading={loading} />)}
+            {personalInfo.map(p => <InfoRow key={p.label} {...p} loading={profileLoading} />)}
           </div>
         </div>
 
@@ -117,7 +138,7 @@ function ProfileContent() {
             <p style={{ fontSize: "11px", color: "#94a3b8", marginTop: "2px" }}>Your employment details</p>
           </div>
           <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: "10px" }}>
-            {workInfo.map(p => <InfoRow key={p.label} {...p} loading={loading} />)}
+            {workInfo.map(p => <InfoRow key={p.label} {...p} loading={profileLoading} />)}
           </div>
         </div>
       </div>
