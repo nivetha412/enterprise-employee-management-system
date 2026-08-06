@@ -6,7 +6,7 @@ export default function LeaveHeader({ totalRequests, pendingCount, onRefresh, on
   return (
     <div style={{
       background: "linear-gradient(135deg, #0f172a 0%, #4c1d95 50%, #7c3aed 100%)",
-      borderRadius: 20, padding: "26px 32px", marginBottom: 22,
+      borderRadius: 16, padding: "18px 22px", marginBottom: 16,
       position: "relative", overflow: "hidden",
       boxShadow: "0 8px 32px rgba(124,58,237,0.28)",
     }}>
@@ -17,17 +17,17 @@ export default function LeaveHeader({ totalRequests, pendingCount, onRefresh, on
         {/* Left */}
         <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
           <div style={{
-            width: 54, height: 54, borderRadius: 16,
+            width: 44, height: 44, borderRadius: 12,
             background: "rgba(255,255,255,0.12)", backdropFilter: "blur(8px)",
             border: "1px solid rgba(255,255,255,0.2)",
             display: "flex", alignItems: "center", justifyContent: "center",
             boxShadow: "0 4px 16px rgba(0,0,0,0.2)", flexShrink: 0,
           }}>
-            <RiCalendarCheckLine size={25} color="#fff" />
+            <RiCalendarCheckLine size={20} color="#fff" />
           </div>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-              <h1 style={{ fontSize: 21, fontWeight: 800, color: "#fff", margin: 0, letterSpacing: "-0.03em" }}>
+              <h1 style={{ fontSize: 18, fontWeight: 800, color: "#fff", margin: 0, letterSpacing: "-0.03em" }}>
                 Leave Management
               </h1>
               <span style={{
@@ -42,7 +42,7 @@ export default function LeaveHeader({ totalRequests, pendingCount, onRefresh, on
             <p style={{ fontSize: 12.5, color: "rgba(255,255,255,0.55)", margin: 0 }}>
               {today} · Review, approve, and manage employee leave requests
             </p>
-            <div style={{ display: "flex", gap: 12, marginTop: 10, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 8, marginTop: 7, flexWrap: "wrap" }}>
               {[
                 { label: "Total Requests",   value: totalRequests },
                 { label: "Pending Approval", value: pendingCount  },
@@ -50,7 +50,7 @@ export default function LeaveHeader({ totalRequests, pendingCount, onRefresh, on
                 <div key={item.label} style={{
                   background: "rgba(255,255,255,0.08)", backdropFilter: "blur(4px)",
                   border: "1px solid rgba(255,255,255,0.12)",
-                  borderRadius: 10, padding: "5px 13px",
+                  borderRadius: 8, padding: "4px 9px",
                 }}>
                   <div style={{ fontSize: 9, color: "rgba(255,255,255,0.45)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>{item.label}</div>
                   <div style={{ fontSize: 15, fontWeight: 800, color: "#fff", marginTop: 1 }}>{item.value}</div>

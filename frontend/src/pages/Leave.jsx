@@ -5,7 +5,6 @@ import { Toast } from "../styles/ui.jsx";
 
 import LeaveHeader      from "../components/leave/LeaveHeader.jsx";
 import LeaveKPICards    from "../components/leave/LeaveKPICards.jsx";
-import LeaveAnalytics   from "../components/leave/LeaveAnalytics.jsx";
 import LeaveToolbar     from "../components/leave/LeaveToolbar.jsx";
 import LeaveTable       from "../components/leave/LeaveTable.jsx";
 import LeaveDetailModal from "../components/leave/LeaveDetailModal.jsx";
@@ -172,13 +171,6 @@ export default function Leave() {
       />
 
       <LeaveKPICards kpi={kpi} loading={loading} />
-
-      <LeaveAnalytics
-        leaves={leaves}
-        employees={employees}
-        departments={departments}
-        today={today}
-      />
 
       <LeaveToolbar
         search={search}             onSearch={setSearch}

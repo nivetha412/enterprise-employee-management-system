@@ -5,7 +5,6 @@ import { Toast } from "../styles/ui.jsx";
 
 import AttHeader      from "../components/attendance/AttHeader.jsx";
 import AttKPICards    from "../components/attendance/AttKPICards.jsx";
-import AttAnalytics   from "../components/attendance/AttAnalytics.jsx";
 import AttToolbar     from "../components/attendance/AttToolbar.jsx";
 import AttTable       from "../components/attendance/AttTable.jsx";
 import AttDetailModal from "../components/attendance/AttDetailModal.jsx";
@@ -181,16 +180,6 @@ export default function Attendance() {
       <AttHeader today={todayLabel} totalRecords={attendance.length} onRefresh={isEmployee ? initEmployee : loadAll} />
 
       <AttKPICards kpi={kpi} loading={loading} />
-
-      {!isEmployee && (
-        <AttAnalytics
-          attendance={attendance}
-          employees={employees}
-          departments={departments}
-          leaves={leaves}
-          today={today}
-        />
-      )}
 
       <AttToolbar
         search={search}             onSearch={setSearch}
