@@ -74,9 +74,9 @@ function Login() {
     try {
       let payload;
       if (activeTab === "EMPLOYEE") {
-        // Employee logs in with employeeCode as both username and password
+        // Employee code is the username; the entered password is never replaced.
         const code = email.trim();
-        payload = { employeeCode: code, password: code };
+        payload = { employeeCode: code, password: password };
       } else {
         payload = { email: email.trim(), password: password.trim() };
       }

@@ -4,7 +4,10 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "employees", uniqueConstraints = @UniqueConstraint(columnNames = "employee_code"))
+@Table(name = "employees", uniqueConstraints = {
+        @UniqueConstraint(columnNames = "employee_code"),
+        @UniqueConstraint(columnNames = "email")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -24,6 +27,9 @@ private String firstName;
 private String lastName;
 
 private String email;
+
+@Column(name = "password_hash")
+private String passwordHash;
 
 private String phone;
 

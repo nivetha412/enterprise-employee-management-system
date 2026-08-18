@@ -30,12 +30,11 @@ export function EmployeeProvider({ children }) {
 
       const [attendanceResult, leaveResult] = await Promise.allSettled([
         api.get(`/attendance/employee/${empId}`),
-        api.get("/leave"),
+        api.get("/leave/mine"),
       ]);
 
       setAttendance(attendanceResult.status === "fulfilled" ? attendanceResult.value.data || [] : []);
-      const allLeaves = leaveResult.status === "fulfilled" ? leaveResult.value.data || [] : [];
-      setLeaves(allLeaves.filter(leave => Number(leave.employeeId) === Number(empId)));
+      setLeaves(leaveResult.status === "fulfilled" ? leaveResult.value.data || [] : []);
     } catch (err) {
       setError(err);
       setEmp(null);

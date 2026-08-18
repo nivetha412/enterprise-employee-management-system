@@ -190,7 +190,7 @@ function LeaveContent() {
 
   const openApply = async () => {
     if (!allEmployees.length) {
-      try { const r = await api.get("/employees"); setAllEmployees(r.data || []); } catch (e) { void e; }
+      try { const r = await api.get("/employees/leave-backups"); setAllEmployees(r.data || []); } catch (e) { void e; }
     }
     setShowApply(true);
   };

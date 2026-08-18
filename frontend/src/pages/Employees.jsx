@@ -16,7 +16,7 @@ import {
 const emptyForm = {
   firstName: "", lastName: "", email: "",
   phone: "", gender: "", designation: "", salary: "",
-  department: "", employmentType: ""
+  department: "", employmentType: "", initialPassword: ""
 };
 
 const EMP_TYPE_COLORS = {
@@ -387,6 +387,7 @@ function Employees() {
     if (!form.designation.trim())    e.designation    = "Required";
     if (!form.department.trim())     e.department     = "Required";
     if (!form.employmentType.trim()) e.employmentType = "Required";
+    if (!editingId && form.initialPassword.length < 12) e.initialPassword = "Use at least 12 characters";
     if (form.salary && isNaN(Number(form.salary))) e.salary = "Must be a number";
     if (form.salary && Number(form.salary) <= 0)   e.salary = "Must be positive";
     setErrors(e);
@@ -420,6 +421,7 @@ function Employees() {
         salary:         form.salary ? Number(form.salary) : null,
         department:     form.department,
         employmentType: form.employmentType,
+        initialPassword: form.initialPassword,
       });
       resetForm();
       fetchEmployees();
@@ -437,7 +439,7 @@ function Employees() {
       lastName: emp.lastName || "",         email: emp.email || "",
       phone: emp.phone || "",               gender: emp.gender || "",
       designation: emp.designation || "",   salary: emp.salary ?? "",
-      department: emp.department || "",     employmentType: emp.employmentType || ""
+      department: emp.department || "",     employmentType: emp.employmentType || "", initialPassword: ""
     });
     setErrors({});
     setShowForm(true);
@@ -457,6 +459,7 @@ function Employees() {
         salary:         form.salary ? Number(form.salary) : null,
         department:     form.department,
         employmentType: form.employmentType,
+        ...(form.initialPassword ? { initialPassword: form.initialPassword } : {}),
       });
       resetForm();
       fetchEmployees();
@@ -468,11 +471,11 @@ function Employees() {
   };
 
   const deleteEmployee = async (id, name) => {
-    if (!window.confirm(`Delete employee "${name}"? This cannot be undone.`)) return;
+    if (!window.confirm(`Deactivate employee "${name}"? They will no longer be able to sign in.`)) return;
     try {
       await api.delete(`/employees/${id}`);
       fetchEmployees();
-      showToast("Employee deleted successfully");
+      showToast("Employee deactivated successfully");
     } catch (error) {
       console.error(error);
       showToast("Failed to delete employee", "error");
@@ -728,6 +731,11 @@ function Employees() {
                 <option value="CONTRACT">Contract</option>
                 <option value="INTERN">Intern</option>
               </select>
+            </Field>
+            <Field label={editingId ? "Reset Password (optional)" : "Initial Password *"} error={errors.initialPassword}>
+              <input name="initialPassword" type="password" autoComplete="new-password" style={inputStyle("initialPassword")} placeholder="At least 12 characters"
+                value={form.initialPassword} onChange={e => handleChange("initialPassword", e.target.value)}
+                onFocus={onFocus} onBlur={onBlur} />
             </Field>
           </div>
 

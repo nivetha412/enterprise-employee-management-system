@@ -46,9 +46,14 @@ public class AuthService {
             Employee employee = employeeRepository.findByEmployeeCode(code)
                     .orElseThrow(() -> new RuntimeException("Employee not found: " + code));
 
-            // Password = employeeCode (plain text comparison for now)
-            if (!code.equals(dto.getPassword() != null ? dto.getPassword().trim() : "")) {
-                throw new RuntimeException("Invalid employee code");
+            if (!Boolean.TRUE.equals(employee.getActive())) {
+                throw new IllegalArgumentException("This employee account is inactive. Please contact HR.");
+            }
+
+            if (dto.getPassword() == null || dto.getPassword().isBlank()
+                    || employee.getPasswordHash() == null
+                    || !passwordEncoder.matches(dto.getPassword(), employee.getPasswordHash())) {
+                throw new IllegalArgumentException("Invalid employee code or password");
             }
 
             // Use employeeCode as the JWT subject (no User record needed)

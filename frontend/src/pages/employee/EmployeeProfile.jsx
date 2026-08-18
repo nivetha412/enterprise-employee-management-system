@@ -110,8 +110,11 @@ function ProfileContent() {
     setSaving(true);
     setSaveError("");
     try {
-      if (emp?.id) {
-        const response = await api.put(`/employees/${emp.id}`, { ...form, salary: form.salary === "" ? null : Number(form.salary), active: emp.active });
+      if (emp?.id && accountRole === "EMPLOYEE") {
+        const response = await api.put("/employees/me", {
+          firstName: form.firstName, lastName: form.lastName, email: form.email,
+          phone: form.phone, gender: form.gender,
+        });
         setProfileEmp(response.data);
         await reload();
       }
@@ -150,9 +153,9 @@ function ProfileContent() {
               </span>
             </div>
           </div>
-          <button onClick={startEditing} style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "7px", padding: "9px 13px", border: "1px solid rgba(255,255,255,0.3)", borderRadius: "10px", background: "rgba(255,255,255,0.12)", color: "#fff", font: "inherit", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}>
+          {accountRole === "EMPLOYEE" && <button onClick={startEditing} style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "7px", padding: "9px 13px", border: "1px solid rgba(255,255,255,0.3)", borderRadius: "10px", background: "rgba(255,255,255,0.12)", color: "#fff", font: "inherit", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}>
             <RiEditLine size={15} /> Edit Profile
-          </button>
+          </button>}
         </div>
       </div>
 
@@ -198,7 +201,7 @@ function ProfileContent() {
           <form onSubmit={saveProfile} style={{ width: "100%", maxWidth: "620px", maxHeight: "90vh", overflowY: "auto", background: "#fff", borderRadius: "18px", padding: "24px", boxShadow: "0 24px 60px rgba(0,0,0,0.25)" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}><div><h2 style={{ fontSize: "18px" }}>Edit Profile</h2><p style={{ color: "#64748b", fontSize: "12px" }}>Update your account details.</p></div><button type="button" onClick={() => setEditing(false)} aria-label="Close" style={{ border: 0, background: "none", cursor: "pointer", color: "#475569" }}><RiCloseLine size={22} /></button></div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }} className="emp-grid-2">
-              {[['firstName','First name'],['lastName','Last name'],['email','Email'],['phone','Phone'],['designation','Designation'],['department','Department'],['employmentType','Employment type'],['salary','Salary']].map(([key, label]) => <label key={key} style={{ fontSize: "12px", fontWeight: 600, color: "#475569" }}>{label}<input required={['firstName','lastName','email','designation','department','employmentType'].includes(key)} type={key === 'email' ? 'email' : key === 'salary' ? 'number' : 'text'} value={form[key] ?? ''} onChange={e => setForm(current => ({ ...current, [key]: e.target.value }))} style={{ width: "100%", marginTop: "5px", padding: "9px 10px", border: "1px solid #cbd5e1", borderRadius: "8px", font: "inherit" }} /></label>)}
+              {[['firstName','First name'],['lastName','Last name'],['email','Email'],['phone','Phone'],['gender','Gender']].map(([key, label]) => <label key={key} style={{ fontSize: "12px", fontWeight: 600, color: "#475569" }}>{label}<input required={['firstName','lastName','email'].includes(key)} type={key === 'email' ? 'email' : 'text'} value={form[key] ?? ''} onChange={e => setForm(current => ({ ...current, [key]: e.target.value }))} style={{ width: "100%", marginTop: "5px", padding: "9px 10px", border: "1px solid #cbd5e1", borderRadius: "8px", font: "inherit" }} /></label>)}
             </div>
             {saveError && <p style={{ marginTop: "14px", color: "#dc2626", fontSize: "12px" }}>{saveError}</p>}
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "22px" }}><button type="button" onClick={() => setEditing(false)} style={{ padding: "9px 14px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", cursor: "pointer" }}>Cancel</button><button disabled={saving} type="submit" style={{ padding: "9px 14px", border: 0, borderRadius: "8px", background: "#1e40af", color: "#fff", fontWeight: 700, cursor: "pointer" }}>{saving ? "Saving..." : "Save Changes"}</button></div>

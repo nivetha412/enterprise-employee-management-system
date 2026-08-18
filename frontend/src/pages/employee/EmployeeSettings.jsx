@@ -204,11 +204,5 @@ function SettingsContent() {
 }
 
 export default function EmployeeSettings() {
-  return (
-    <EmployeeProvider>
-      <MainLayout>
-        <SettingsContent />
-      </MainLayout>
-    </EmployeeProvider>
-  );
+  return <MainLayout><div style={{ maxWidth: 620, background: "#fff", borderRadius: 16, padding: 28, border: "1px solid #e2e8f0" }}><h1 style={{ fontSize: 20 }}>Account settings</h1><p style={{ color: "#64748b", marginTop: 8 }}>Settings are read-only until secure preference and password-management APIs are available.</p></div></MainLayout>;
 }
