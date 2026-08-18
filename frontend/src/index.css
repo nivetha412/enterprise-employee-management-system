@@ -188,3 +188,15 @@ h1, h2, h3, h4 {
   transform: translateY(-3px);
   box-shadow: 0 12px 36px rgba(30,64,175,0.12), 0 2px 8px rgba(0,0,0,0.06) !important;
 }
+
+/* Keep the app header usable on narrow screens without changing desktop layout. */
+@media (max-width: 600px) {
+  .app-navbar { padding: 0 12px !important; }
+  .app-navbar__brand,
+  .app-navbar__breadcrumb,
+  .app-navbar__role,
+  .app-navbar__profile-details { display: none !important; }
+  .app-navbar__left { gap: 0 !important; }
+  .app-navbar__actions { margin-left: auto; }
+  .app-navbar__profile-menu { max-width: calc(100vw - 24px) !important; }
+}

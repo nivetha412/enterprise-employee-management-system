@@ -7,6 +7,7 @@ import {
   RiUserLine, RiBriefcaseLine, RiBuildingLine, RiPhoneLine,
   RiMailLine, RiShieldCheckLine, RiMoneyDollarCircleLine,
   RiVipCrownLine, RiCheckboxCircleLine,
+  RiEditLine, RiCloseLine,
 } from "react-icons/ri";
 
 function Skeleton({ w = "100%", h = 16, r = 6 }) {
@@ -32,9 +33,16 @@ function InfoRow({ icon: Icon, label, value, color = "#1e40af", bg = "#eff6ff", 
 }
 
 function ProfileContent() {
-  const { emp: contextEmp, loading, attStats, leaveStats } = useEmployee();
+  const { emp: contextEmp, loading, attStats, leaveStats, reload } = useEmployee();
   const [profileEmp, setProfileEmp] = useState(null);
   const [profileLoading, setProfileLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [form, setForm] = useState({});
+  const accountEmail = localStorage.getItem("email") || "";
+  const accountName = localStorage.getItem("name") || accountEmail.split("@")[0] || "User";
+  const accountRole = localStorage.getItem("role") || "EMPLOYEE";
 
   useEffect(() => {
     let cancelled = false;
@@ -51,9 +59,17 @@ function ProfileContent() {
     return () => { cancelled = true; };
   }, []);
 
-  const emp = profileEmp || contextEmp;
+  // An admin can use these account pages without having an Employee record.
+  const accountProfile = {
+    firstName: accountName, lastName: "", email: accountEmail,
+    designation: accountRole === "ADMIN" ? "Administrator" : "",
+    department: accountRole === "ADMIN" ? "Administration" : "",
+    employmentType: "Account", employeeCode: accountRole === "ADMIN" ? "ADMIN" : "",
+    active: true,
+  };
+  const emp = profileEmp || contextEmp || (!profileLoading ? accountProfile : null);
 
-  const fullName = emp ? `${emp.firstName} ${emp.lastName}` : "—";
+  const fullName = emp ? `${emp.firstName || ""} ${emp.lastName || ""}`.trim() : "—";
   const initials = emp ? `${emp.firstName?.[0] ?? ""}${emp.lastName?.[0] ?? ""}`.toUpperCase() : "…";
 
   const personalInfo = [
@@ -61,16 +77,16 @@ function ProfileContent() {
     { icon: RiMailLine,               label: "Email",           value: emp?.email,            color: "#7c3aed", bg: "#f5f3ff" },
     { icon: RiPhoneLine,              label: "Phone",           value: emp?.phone,            color: "#059669", bg: "#ecfdf5" },
     { icon: RiVipCrownLine,           label: "Gender",          value: emp?.gender,           color: "#d97706", bg: "#fffbeb" },
-  ];
+  ].filter(item => item.value);
 
   const workInfo = [
     { icon: RiUserLine,               label: "Employee Code",   value: emp?.employeeCode,     color: "#1e40af", bg: "#eff6ff" },
     { icon: RiBriefcaseLine,          label: "Designation",     value: emp?.designation,      color: "#7c3aed", bg: "#f5f3ff" },
     { icon: RiBuildingLine,           label: "Department",      value: emp?.department,       color: "#0891b2", bg: "#ecfeff" },
     { icon: RiShieldCheckLine,        label: "Employment Type", value: emp?.employmentType,   color: "#d97706", bg: "#fffbeb" },
-    { icon: RiMoneyDollarCircleLine,  label: "Salary",          value: emp?.salary ? `$${Number(emp.salary).toLocaleString()}` : "—", color: "#059669", bg: "#ecfdf5" },
+    { icon: RiMoneyDollarCircleLine,  label: "Salary",          value: emp?.salary ? `$${Number(emp.salary).toLocaleString()}` : null, color: "#059669", bg: "#ecfdf5" },
     { icon: RiCheckboxCircleLine,     label: "Status",          value: emp?.active ? "Active" : "Inactive", color: emp?.active ? "#059669" : "#dc2626", bg: emp?.active ? "#ecfdf5" : "#fef2f2" },
-  ];
+  ].filter(item => item.value);
 
   const statCards = [
     { label: "Present Days",   value: attStats.presentDays, color: "#059669", bg: "linear-gradient(135deg,#ecfdf5,#d1fae5)", border: "#6ee7b760" },
@@ -78,6 +94,37 @@ function ProfileContent() {
     { label: "Leave Approved", value: leaveStats.approved,  color: "#7c3aed", bg: "linear-gradient(135deg,#f5f3ff,#ede9fe)", border: "#c4b5fd60" },
     { label: "Leave Pending",  value: leaveStats.pending,   color: "#1e40af", bg: "linear-gradient(135deg,#eff6ff,#dbeafe)", border: "#93c5fd60" },
   ];
+
+  const startEditing = () => {
+    setSaveError("");
+    setForm({
+      firstName: emp?.firstName || "", lastName: emp?.lastName || "", email: emp?.email || accountEmail,
+      phone: emp?.phone || "", gender: emp?.gender || "", designation: emp?.designation || "",
+      department: emp?.department || "", employmentType: emp?.employmentType || "", salary: emp?.salary ?? "",
+    });
+    setEditing(true);
+  };
+
+  const saveProfile = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    setSaveError("");
+    try {
+      if (emp?.id) {
+        const response = await api.put(`/employees/${emp.id}`, { ...form, salary: form.salary === "" ? null : Number(form.salary), active: emp.active });
+        setProfileEmp(response.data);
+        await reload();
+      }
+      localStorage.setItem("name", `${form.firstName} ${form.lastName}`.trim());
+      localStorage.setItem("email", form.email);
+      window.dispatchEvent(new Event("profile-updated"));
+      setEditing(false);
+    } catch (error) {
+      setSaveError(error?.response?.data?.message || "Unable to save your profile. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <>
@@ -103,6 +150,9 @@ function ProfileContent() {
               </span>
             </div>
           </div>
+          <button onClick={startEditing} style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "7px", padding: "9px 13px", border: "1px solid rgba(255,255,255,0.3)", borderRadius: "10px", background: "rgba(255,255,255,0.12)", color: "#fff", font: "inherit", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}>
+            <RiEditLine size={15} /> Edit Profile
+          </button>
         </div>
       </div>
 
@@ -142,6 +192,19 @@ function ProfileContent() {
           </div>
         </div>
       </div>
+
+      {editing && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(15,23,42,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
+          <form onSubmit={saveProfile} style={{ width: "100%", maxWidth: "620px", maxHeight: "90vh", overflowY: "auto", background: "#fff", borderRadius: "18px", padding: "24px", boxShadow: "0 24px 60px rgba(0,0,0,0.25)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}><div><h2 style={{ fontSize: "18px" }}>Edit Profile</h2><p style={{ color: "#64748b", fontSize: "12px" }}>Update your account details.</p></div><button type="button" onClick={() => setEditing(false)} aria-label="Close" style={{ border: 0, background: "none", cursor: "pointer", color: "#475569" }}><RiCloseLine size={22} /></button></div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }} className="emp-grid-2">
+              {[['firstName','First name'],['lastName','Last name'],['email','Email'],['phone','Phone'],['designation','Designation'],['department','Department'],['employmentType','Employment type'],['salary','Salary']].map(([key, label]) => <label key={key} style={{ fontSize: "12px", fontWeight: 600, color: "#475569" }}>{label}<input required={['firstName','lastName','email','designation','department','employmentType'].includes(key)} type={key === 'email' ? 'email' : key === 'salary' ? 'number' : 'text'} value={form[key] ?? ''} onChange={e => setForm(current => ({ ...current, [key]: e.target.value }))} style={{ width: "100%", marginTop: "5px", padding: "9px 10px", border: "1px solid #cbd5e1", borderRadius: "8px", font: "inherit" }} /></label>)}
+            </div>
+            {saveError && <p style={{ marginTop: "14px", color: "#dc2626", fontSize: "12px" }}>{saveError}</p>}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "22px" }}><button type="button" onClick={() => setEditing(false)} style={{ padding: "9px 14px", border: "1px solid #cbd5e1", borderRadius: "8px", background: "#fff", cursor: "pointer" }}>Cancel</button><button disabled={saving} type="submit" style={{ padding: "9px 14px", border: 0, borderRadius: "8px", background: "#1e40af", color: "#fff", fontWeight: 700, cursor: "pointer" }}>{saving ? "Saving..." : "Save Changes"}</button></div>
+          </form>
+        </div>
+      )}
     </>
   );
 }

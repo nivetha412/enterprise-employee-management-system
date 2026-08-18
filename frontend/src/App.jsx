@@ -76,6 +76,18 @@ export default function App() {
           </ProtectedRoute>
         } />
 
+        <Route path="profile" element={
+          <ProtectedRoute allowedRoles={["ADMIN"]}>
+            <EmployeeProfile />
+          </ProtectedRoute>
+        } />
+
+        <Route path="settings" element={
+          <ProtectedRoute allowedRoles={["ADMIN"]}>
+            <EmployeeSettings />
+          </ProtectedRoute>
+        } />
+
         {/* Unknown /admin/* → 404 */}
         <Route path="*" element={<NotFound />} />
       </Route>

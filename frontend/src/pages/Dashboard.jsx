@@ -26,7 +26,7 @@ export default function Dashboard() {
   const [report, setReport] = useState(null);
   const [pendingLeaves, setPendingLeaves] = useState(null);
   const [loading, setLoading] = useState(true);
-  const displayName = (localStorage.getItem("email") || "Admin").split("@")[0];
+  const displayName = localStorage.getItem("name") || (localStorage.getItem("email") || "Admin").split("@")[0];
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);

@@ -23,8 +23,8 @@ export default function Navbar({ onSidebarToggle }) {
   const roleFromUrl  = DOMAIN_TO_ROLE[urlSegment];
   const role         = roleFromUrl || ctxRole || localStorage.getItem("role") || "EMPLOYEE";
 
-  const initials     = email ? email.slice(0, 2).toUpperCase() : "U";
-  const displayName  = email.split("@")[0] || "User";
+  const displayName  = localStorage.getItem("name") || email.split("@")[0] || "User";
+  const initials     = displayName.slice(0, 2).toUpperCase();
 
   const [showProfile, setShowProfile] = useState(false);
   const [showNotif,   setShowNotif]   = useState(false);
@@ -65,8 +65,13 @@ export default function Navbar({ onSidebarToggle }) {
     navigate(`/?role=${newRole.toLowerCase()}`, { replace: true });
   };
 
+  const openAccountPage = (page) => {
+    setShowProfile(false);
+    navigate(`/${ROLE_TO_DOMAIN[role] || "employee"}/${page}`);
+  };
+
   return (
-    <header style={{
+    <header className="app-navbar" style={{
       height: "var(--navbar-height)",
       background: "linear-gradient(135deg, #1e3a8a 0%, #1e40af 60%, #2563eb 100%)",
       display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -76,7 +81,7 @@ export default function Navbar({ onSidebarToggle }) {
     }}>
 
       {/* Left: Toggle + Logo */}
-      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+      <div className="app-navbar__left" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
         <button
           onClick={onSidebarToggle}
           style={{
@@ -91,7 +96,7 @@ export default function Navbar({ onSidebarToggle }) {
         >
           ☰
         </button>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div className="app-navbar__brand" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <div style={{
             width: "36px", height: "36px",
             background: "rgba(255,255,255,0.18)", borderRadius: "10px",
@@ -112,17 +117,17 @@ export default function Navbar({ onSidebarToggle }) {
       </div>
 
       {/* Center: breadcrumb hint */}
-      <div style={{ flex: 1, maxWidth: "420px", margin: "0 24px" }}>
+      <div className="app-navbar__breadcrumb" style={{ flex: 1, maxWidth: "420px", margin: "0 24px" }}>
         <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.45)", fontWeight: 500 }}>
           Enterprise HRMS Platform
         </span>
       </div>
 
       {/* Right: actions */}
-      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+      <div className="app-navbar__actions" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
 
         {/* Role Switcher */}
-        <div ref={roleRef} style={{ position: "relative" }}>
+        <div className="app-navbar__role" ref={roleRef} style={{ position: "relative" }}>
           <button
             onClick={() => setShowRole(v => !v)}
             style={{
@@ -223,7 +228,7 @@ export default function Navbar({ onSidebarToggle }) {
         </div>
 
         {/* Profile */}
-        <div ref={profileRef} style={{ position: "relative" }}>
+        <div className="app-navbar__profile" ref={profileRef} style={{ position: "relative" }}>
           <button
             onClick={() => setShowProfile(v => !v)}
             style={{
@@ -245,7 +250,7 @@ export default function Navbar({ onSidebarToggle }) {
             }}>
               {initials}
             </div>
-            <div style={{ textAlign: "left" }}>
+            <div className="app-navbar__profile-details" style={{ textAlign: "left" }}>
               <div style={{ color: "#fff", fontSize: "12px", fontWeight: 600, lineHeight: 1.2 }}>
                 {displayName}
               </div>
@@ -257,11 +262,11 @@ export default function Navbar({ onSidebarToggle }) {
           </button>
 
           {showProfile && (
-            <div style={{
+            <div className="app-navbar__profile-menu" style={{
               position: "absolute", right: 0, top: "calc(100% + 8px)",
               background: "#fff", borderRadius: "16px",
               boxShadow: "var(--shadow-lg)", border: "1px solid var(--border)",
-              minWidth: "220px", overflow: "hidden", zIndex: 300,
+              minWidth: "220px", maxWidth: "calc(100vw - 24px)", overflow: "hidden", zIndex: 300,
             }}>
               <div style={{ padding: "16px", borderBottom: "1px solid var(--border)", background: "linear-gradient(135deg, #eff6ff, #f5f3ff)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -286,10 +291,10 @@ export default function Navbar({ onSidebarToggle }) {
               </div>
 
               {[
-                { icon: <RiUserLine size={15} />, label: "My Profile" },
-                { icon: <RiSettings3Line size={15} />, label: "Settings" },
+                { icon: <RiUserLine size={15} />, label: "My Profile", page: "profile" },
+                { icon: <RiSettings3Line size={15} />, label: "Settings", page: "settings" },
               ].map(item => (
-                <button key={item.label} style={{
+                <button key={item.label} onClick={() => openAccountPage(item.page)} style={{
                   width: "100%", padding: "10px 16px", background: "none",
                   border: "none", cursor: "pointer", fontSize: "13px",
                   fontWeight: 500, color: "var(--text-primary)",

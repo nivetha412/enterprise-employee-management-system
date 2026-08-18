@@ -29,7 +29,7 @@ export default function EmpDashHero() {
   const { emp, loading, attStats, leaveStats, todayRecord } = useEmployee();
   const { text, emoji } = getGreeting();
 
-  const fullName = emp ? `${emp.firstName} ${emp.lastName}` : (localStorage.getItem("email") || "Employee").split("@")[0];
+  const fullName = emp ? `${emp.firstName} ${emp.lastName}` : localStorage.getItem("name") || (localStorage.getItem("email") || "Employee").split("@")[0];
   const initials = emp
     ? `${emp.firstName?.[0] ?? ""}${emp.lastName?.[0] ?? ""}`.toUpperCase()
     : fullName.slice(0, 2).toUpperCase();

@@ -134,8 +134,12 @@ function SecurityTab() {
 }
 
 function SettingsContent() {
-  const { emp, loading } = useEmployee();
+  const { emp: employee, loading } = useEmployee();
   const [tab, setTab] = useState("notifications");
+  const accountEmail = localStorage.getItem("email") || "";
+  const accountName = localStorage.getItem("name") || accountEmail.split("@")[0] || "User";
+  const accountRole = localStorage.getItem("role") || "EMPLOYEE";
+  const emp = employee || { firstName: accountName, lastName: "", employeeCode: accountRole === "ADMIN" ? "ADMIN" : "" };
 
   const CONTENT = { notifications: <NotificationsTab />, appearance: <AppearanceTab />, security: <SecurityTab /> };
 

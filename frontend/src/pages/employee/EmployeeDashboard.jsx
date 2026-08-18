@@ -20,7 +20,7 @@ function DashboardContent() {
   const navigate = useDomainNav();
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState({ message: "", type: "success" });
-  const firstName = emp?.firstName || (localStorage.getItem("email") || "Employee").split("@")[0];
+  const firstName = emp?.firstName || localStorage.getItem("name") || (localStorage.getItem("email") || "Employee").split("@")[0];
   const attendanceRate = attStats.workingDays ? Math.round((attStats.presentDays / attStats.workingDays) * 100) : 0;
   const showToast = (message, type = "success") => { setToast({ message, type }); window.setTimeout(() => setToast({ message: "", type: "success" }), 3200); };
   const updateAttendance = async (endpoint) => {

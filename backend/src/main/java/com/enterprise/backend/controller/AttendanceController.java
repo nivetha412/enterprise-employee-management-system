@@ -5,6 +5,7 @@ import com.enterprise.backend.dto.AttendanceResponseDto;
 import com.enterprise.backend.service.AttendanceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -16,6 +17,7 @@ public class AttendanceController {
     private final AttendanceService attendanceService;
 
     @PostMapping("/checkin")
+    @PreAuthorize("@accessControl.ownsEmployee(#dto.employeeId, authentication)")
     public AttendanceResponseDto checkIn(
             @RequestBody AttendanceRequestDto dto) {
 
@@ -23,6 +25,7 @@ public class AttendanceController {
     }
 
     @PostMapping("/checkout")
+    @PreAuthorize("@accessControl.ownsEmployee(#dto.employeeId, authentication)")
     public AttendanceResponseDto checkOut(
             @RequestBody AttendanceRequestDto dto) {
 
@@ -30,12 +33,14 @@ public class AttendanceController {
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public List<AttendanceResponseDto> getAllAttendance() {
 
         return attendanceService.getAllAttendance();
     }
 
     @GetMapping("/employee/{employeeId}")
+    @PreAuthorize("@accessControl.ownsEmployee(#employeeId, authentication)")
     public List<AttendanceResponseDto> getAttendanceByEmployee(
             @PathVariable Long employeeId) {
 
@@ -43,6 +48,7 @@ public class AttendanceController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public String deleteAttendance(
             @PathVariable Long id) {
 
