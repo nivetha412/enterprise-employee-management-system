@@ -38,6 +38,12 @@ public class LeaveController {
         return leaveService.getMyLeaves(authentication);
     }
 
+    @GetMapping("/balance/mine")
+    @PreAuthorize("hasRole('EMPLOYEE')")
+    public com.enterprise.backend.dto.EmployeeLeaveBalanceResponseDto getMyLeaveBalance(Authentication authentication) {
+        return leaveService.getMyLeaveBalance(authentication);
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
 public LeaveResponseDto getLeaveById(

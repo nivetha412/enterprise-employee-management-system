@@ -26,14 +26,17 @@ export default function Dashboard() {
   const [report, setReport] = useState(null);
   const [pendingLeaves, setPendingLeaves] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const displayName = localStorage.getItem("name") || (localStorage.getItem("email") || "Admin").split("@")[0];
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
+    setError("");
     try {
       const [reportResult, leaveResult] = await Promise.allSettled([api.get("/reports/dashboard"), api.get("/leave")]);
       setReport(reportResult.status === "fulfilled" ? reportResult.value.data : null);
       setPendingLeaves(leaveResult.status === "fulfilled" ? (leaveResult.value.data || []).filter(leave => leave.status === "PENDING").length : null);
+      if (reportResult.status === "rejected" || leaveResult.status === "rejected") setError("Some dashboard data could not be loaded. Please retry.");
     } finally {
       setLoading(false);
     }
@@ -48,6 +51,7 @@ export default function Dashboard() {
       <div><p>Admin workspace</p><h1>Good day, {displayName.charAt(0).toUpperCase() + displayName.slice(1)}</h1><span>{today} · A focused view of your organisation</span></div>
       <button onClick={loadDashboard} disabled={loading} className="admin-dashboard__refresh"><RiRefreshLine /> Refresh</button>
     </header>
+    {error && <div role="alert" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", padding: "12px 16px", borderRadius: "10px", background: "#fff5f5", border: "1px solid #fecaca", color: "#b91c1c", fontSize: "13px", fontWeight: 600 }}><span>{error}</span><button onClick={loadDashboard} disabled={loading} style={{ border: "1px solid #fecaca", borderRadius: "7px", background: "#fff", color: "#b91c1c", cursor: loading ? "not-allowed" : "pointer", fontWeight: 700, padding: "5px 10px" }}>Retry</button></div>}
     <section className="admin-dashboard__metrics" aria-label="Organisation snapshot">{METRICS.map(metric => <MetricCard key={metric.key} metric={metric} value={values[metric.key]} loading={loading} />)}</section>
     <section className="admin-dashboard__actions"><div><p>Common tasks</p><h2>Manage your workforce</h2></div><button onClick={() => navigate("/employees")}><RiUserAddLine /><span>Add employee</span><small>Create an employee profile</small></button><button onClick={() => navigate("/leave")}><RiCalendarCheckLine /><span>Review leave</span><small>{pendingLeaves == null ? "View leave requests" : `${pendingLeaves} request${pendingLeaves === 1 ? "" : "s"} pending`}</small></button><button onClick={() => navigate("/attendance")}><RiTimeLine /><span>Attendance</span><small>Review today’s attendance</small></button><button onClick={() => navigate("/departments")}><RiBuildingLine /><span>Departments</span><small>Manage organisation units</small></button></section>
   </div></MainLayout>;

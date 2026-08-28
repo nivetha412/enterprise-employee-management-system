@@ -18,10 +18,7 @@ export function EmployeeProvider({ children }) {
     setLoading(true);
     setError(null);
     try {
-      const storedEmployeeId = localStorage.getItem("employeeId");
-      const employeeResponse = storedEmployeeId
-        ? await api.get(`/employees/${storedEmployeeId}`).catch(() => api.get("/employees/me"))
-        : await api.get("/employees/me");
+      const employeeResponse = await api.get("/employees/me");
       const employee = employeeResponse.data;
       const empId = employee?.id;
 
@@ -35,8 +32,9 @@ export function EmployeeProvider({ children }) {
 
       setAttendance(attendanceResult.status === "fulfilled" ? attendanceResult.value.data || [] : []);
       setLeaves(leaveResult.status === "fulfilled" ? leaveResult.value.data || [] : []);
+      if (attendanceResult.status === "rejected" || leaveResult.status === "rejected") setError("Some dashboard data could not be loaded. Please retry.");
     } catch (err) {
-      setError(err);
+      setError(err?.userMessage || err?.message || "Dashboard data could not be loaded. Please retry.");
       setEmp(null);
       setAttendance([]);
       setLeaves([]);
@@ -62,7 +60,7 @@ export function EmployeeProvider({ children }) {
     lateDays:    thisMonth.filter(r => r.lateArrival).length,
     leaveDays:   thisMonth.filter(r => r.status === "LEAVE").length,
     totalHours:  parseFloat(thisMonth.reduce((s, r) => s + (r.workingHours || 0), 0).toFixed(1)),
-    workingDays: thisMonth.length || 1,
+    workingDays: thisMonth.length,
   };
 
   const leaveStats = {

@@ -1,21 +1,29 @@
+import { useEffect, useState } from "react";
 import { RiCalendarCheckLine, RiTimeLine, RiCheckLine, RiCloseLine, RiAddLine } from "react-icons/ri";
 import { useDomainNav } from "../../context/RoleContext";
 import { useEmployee } from "../../hooks/useEmployee";
+import api from "../../services/api";
 
 const LEAVE_TYPES = [
-  { key: "CASUAL_LEAVE",  label: "Casual Leave",  total: 12, color: "#3b82f6", bg: "#eff6ff" },
-  { key: "SICK_LEAVE",    label: "Sick Leave",    total: 10, color: "#10b981", bg: "#ecfdf5" },
-  { key: "EARNED_LEAVE",  label: "Earned Leave",  total: 15, color: "#8b5cf6", bg: "#f5f3ff" },
+  { key: "CASUAL_LEAVE",  balanceKey: "casualLeaveBalance", label: "Casual Leave", color: "#3b82f6", bg: "#eff6ff" },
+  { key: "SICK_LEAVE",    balanceKey: "sickLeaveBalance", label: "Sick Leave", color: "#10b981", bg: "#ecfdf5" },
+  { key: "EARNED_LEAVE",  balanceKey: "earnedLeaveBalance", label: "Earned Leave", color: "#8b5cf6", bg: "#f5f3ff" },
 ];
 
 export default function EmpDashLeaveCard() {
   const navigate = useDomainNav();
-  const { leaves, leaveStats, loading } = useEmployee();
+  const { leaveStats, loading } = useEmployee();
+  const [balances, setBalances] = useState(null);
+  const [balancesLoading, setBalancesLoading] = useState(true);
 
-  const usedByType = {};
-  leaves.filter(l => l.status === "APPROVED").forEach(l => {
-    usedByType[l.leaveType] = (usedByType[l.leaveType] || 0) + (l.totalDays || 1);
-  });
+  useEffect(() => {
+    let active = true;
+    api.get("/leave/balance/mine")
+      .then(response => { if (active) setBalances(response.data); })
+      .catch(() => { if (active) setBalances(null); })
+      .finally(() => { if (active) setBalancesLoading(false); });
+    return () => { active = false; };
+  }, []);
 
   const statCards = [
     { icon: RiCalendarCheckLine, label: "Total",    value: leaveStats.total,    color: "#1e40af", bg: "#eff6ff" },
@@ -63,9 +71,8 @@ export default function EmpDashLeaveCard() {
 
         <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: "14px" }}>
           <div style={{ fontSize: "10px", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "10px" }}>Leave Breakdown</div>
-          {LEAVE_TYPES.map(({ key, label, total, color }) => {
-            const used = usedByType[key] || 0;
-            const pct  = Math.min((used / total) * 100, 100);
+          {LEAVE_TYPES.map(({ key, balanceKey, label, color }) => {
+            const balance = balances?.[balanceKey];
             return (
               <div key={key} style={{ marginBottom: "10px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
@@ -74,12 +81,9 @@ export default function EmpDashLeaveCard() {
                     <span style={{ fontSize: "11.5px", fontWeight: 600, color: "#475569" }}>{label}</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                    <span style={{ fontSize: "11px", fontWeight: 800, color }}>{used}</span>
-                    <span style={{ fontSize: "10px", color: "#94a3b8" }}>/ {total}d</span>
+                    <span style={{ fontSize: "11px", fontWeight: 800, color }}>{balancesLoading ? "..." : balance ?? "—"}</span>
+                    <span style={{ fontSize: "10px", color: "#94a3b8" }}>d remaining</span>
                   </div>
-                </div>
-                <div style={{ height: "5px", borderRadius: "99px", background: "#f1f5f9", overflow: "hidden" }}>
-                  <div style={{ height: "100%", borderRadius: "99px", width: `${pct}%`, background: `linear-gradient(90deg,${color},${color}cc)`, transition: "width 0.8s cubic-bezier(0.16,1,0.3,1)" }} />
                 </div>
               </div>
             );

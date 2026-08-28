@@ -5,8 +5,12 @@ import com.enterprise.backend.dto.LeaveResponseDto;
 import com.enterprise.backend.entity.LeaveRequest;
 import com.enterprise.backend.enums.LeaveStatus;
 import com.enterprise.backend.repository.LeaveRequestRepository;
+import com.enterprise.backend.repository.EmployeeLeaveBalanceRepository;
 import com.enterprise.backend.repository.EmployeeRepository;
 import com.enterprise.backend.entity.Employee;
+import com.enterprise.backend.entity.EmployeeLeaveBalance;
+import com.enterprise.backend.dto.EmployeeLeaveBalanceResponseDto;
+import com.enterprise.backend.exception.LeaveConflictException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +28,7 @@ public class LeaveService {
 
     private final LeaveRequestRepository leaveRequestRepository;
     private final EmployeeRepository employeeRepository;
+    private final EmployeeLeaveBalanceRepository employeeLeaveBalanceRepository;
 
     @Transactional
     public LeaveResponseDto applyLeave(LeaveRequestDto dto, Authentication authentication) {
@@ -93,6 +98,19 @@ public class LeaveService {
                 .map(this::mapToDto).toList();
     }
 
+    public EmployeeLeaveBalanceResponseDto getMyLeaveBalance(Authentication authentication) {
+        Long employeeId = currentEmployee(authentication).getId();
+        EmployeeLeaveBalance balance = employeeLeaveBalanceRepository.findFirstByEmployeeId(employeeId)
+                .orElse(null);
+        return EmployeeLeaveBalanceResponseDto.builder()
+                .casualLeaveBalance(balance != null ? balance.getCasualLeaveBalance() : 0)
+                .sickLeaveBalance(balance != null ? balance.getSickLeaveBalance() : 0)
+                .earnedLeaveBalance(balance != null ? balance.getEarnedLeaveBalance() : 0)
+                .compOffBalance(balance != null ? balance.getCompOffBalance() : 0)
+                .wfhBalance(balance != null ? balance.getWfhBalance() : 0)
+                .build();
+    }
+
 public LeaveResponseDto getLeaveById(Long id, Authentication authentication) {
 
     LeaveRequest leave =
@@ -123,6 +141,12 @@ public LeaveResponseDto updateLeave(
         if (!admin) {
             throw new AccessDeniedException("Only an administrator can change leave status");
         }
+        if (leave.getStatus() != LeaveStatus.PENDING) {
+            throw new IllegalArgumentException("Only pending leave requests can be approved or rejected");
+        }
+        if (dto.getStatus() == LeaveStatus.APPROVED) {
+            deductLeaveBalance(leave);
+        }
         leave.setStatus(dto.getStatus());
         if (dto.getManagerRemarks() != null) {
             leave.setManagerRemarks(dto.getManagerRemarks());
@@ -138,13 +162,11 @@ public LeaveResponseDto updateLeave(
 
     // Regular edit: only allowed while PENDING
     if (leave.getStatus() != LeaveStatus.PENDING) {
-        throw new RuntimeException(
+        throw new IllegalArgumentException(
                 "Only Pending Leave Can Be Updated");
     }
 
-    if (!admin) {
-        validateLeave(dto, leave.getEmployeeId(), false, leave.getId());
-    }
+    validateLeave(dto, leave.getEmployeeId(), false, leave.getId());
     int totalDays =
             (int) ChronoUnit.DAYS.between(
                     dto.getStartDate(),
@@ -175,6 +197,14 @@ public void deleteLeave(Long id, Authentication authentication) {
     assertAdminOrOwner(leave, authentication);
     if (!isAdmin(authentication) && leave.getStatus() != LeaveStatus.PENDING) {
         throw new AccessDeniedException("Only pending leave requests can be cancelled");
+    }
+    if (!isAdmin(authentication)) {
+        leave.setStatus(LeaveStatus.CANCELLED);
+        leaveRequestRepository.save(leave);
+        return;
+    }
+    if (isAdmin(authentication) && leave.getStatus() == LeaveStatus.APPROVED) {
+        restoreLeaveBalance(leave);
     }
     leaveRequestRepository.delete(leave);
 }
@@ -211,8 +241,59 @@ public void deleteLeave(Long id, Authentication authentication) {
                         && !dto.getEndDate().isBefore(existing.getStartDate())
                         && !dto.getStartDate().isAfter(existing.getEndDate()));
         if (overlaps) {
-            throw new IllegalArgumentException("Leave dates conflict with an existing leave request");
+            throw new LeaveConflictException("Leave dates conflict with an existing leave request");
         }
+    }
+
+    private void deductLeaveBalance(LeaveRequest leave) {
+        EmployeeLeaveBalance balance = employeeLeaveBalanceRepository.findFirstByEmployeeId(leave.getEmployeeId())
+                .orElseThrow(() -> new IllegalArgumentException("Leave balance is not available for this employee"));
+        int days = leave.getTotalDays();
+        Integer remaining;
+        switch (leave.getLeaveType()) {
+            case CASUAL_LEAVE -> {
+                remaining = balance.getCasualLeaveBalance();
+                if (remaining == null || remaining < days) throw new IllegalArgumentException("Insufficient casual leave balance");
+                balance.setCasualLeaveBalance(remaining - days);
+            }
+            case SICK_LEAVE -> {
+                remaining = balance.getSickLeaveBalance();
+                if (remaining == null || remaining < days) throw new IllegalArgumentException("Insufficient sick leave balance");
+                balance.setSickLeaveBalance(remaining - days);
+            }
+            case EARNED_LEAVE -> {
+                remaining = balance.getEarnedLeaveBalance();
+                if (remaining == null || remaining < days) throw new IllegalArgumentException("Insufficient earned leave balance");
+                balance.setEarnedLeaveBalance(remaining - days);
+            }
+            case COMP_OFF -> {
+                remaining = balance.getCompOffBalance();
+                if (remaining == null || remaining < days) throw new IllegalArgumentException("Insufficient comp-off balance");
+                balance.setCompOffBalance(remaining - days);
+            }
+            case WORK_FROM_HOME -> {
+                remaining = balance.getWfhBalance();
+                if (remaining == null || remaining < days) throw new IllegalArgumentException("Insufficient work-from-home balance");
+                balance.setWfhBalance(remaining - days);
+            }
+            case LOSS_OF_PAY -> { return; }
+        }
+        employeeLeaveBalanceRepository.save(balance);
+    }
+
+    private void restoreLeaveBalance(LeaveRequest leave) {
+        EmployeeLeaveBalance balance = employeeLeaveBalanceRepository.findFirstByEmployeeId(leave.getEmployeeId())
+                .orElseThrow(() -> new IllegalArgumentException("Leave balance is not available for this employee"));
+        int days = leave.getTotalDays();
+        switch (leave.getLeaveType()) {
+            case CASUAL_LEAVE -> balance.setCasualLeaveBalance((balance.getCasualLeaveBalance() == null ? 0 : balance.getCasualLeaveBalance()) + days);
+            case SICK_LEAVE -> balance.setSickLeaveBalance((balance.getSickLeaveBalance() == null ? 0 : balance.getSickLeaveBalance()) + days);
+            case EARNED_LEAVE -> balance.setEarnedLeaveBalance((balance.getEarnedLeaveBalance() == null ? 0 : balance.getEarnedLeaveBalance()) + days);
+            case COMP_OFF -> balance.setCompOffBalance((balance.getCompOffBalance() == null ? 0 : balance.getCompOffBalance()) + days);
+            case WORK_FROM_HOME -> balance.setWfhBalance((balance.getWfhBalance() == null ? 0 : balance.getWfhBalance()) + days);
+            case LOSS_OF_PAY -> { return; }
+        }
+        employeeLeaveBalanceRepository.save(balance);
     }
 
     private Employee currentEmployee(Authentication authentication) {

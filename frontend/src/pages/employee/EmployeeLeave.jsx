@@ -13,6 +13,7 @@ const STATUS_CFG = {
   PENDING:  { color: "#d97706", bg: "#fffbeb", border: "#fcd34d" },
   APPROVED: { color: "#059669", bg: "#ecfdf5", border: "#6ee7b7" },
   REJECTED: { color: "#dc2626", bg: "#fef2f2", border: "#fca5a5" },
+  CANCELLED: { color: "#64748b", bg: "#f8fafc", border: "#cbd5e1" },
 };
 
 function fmt(s) { return (s || "").replace(/_/g, " "); }
@@ -268,7 +269,7 @@ function LeaveContent() {
             <p style={{ fontSize: "11px", color: "#94a3b8", marginTop: "2px" }}>{filtered.length} records</p>
           </div>
           <div style={{ display: "flex", gap: "6px" }}>
-            {["ALL","PENDING","APPROVED","REJECTED"].map(s => {
+            {["ALL","PENDING","APPROVED","REJECTED","CANCELLED"].map(s => {
               const active = statusFilter === s;
               return (
                 <button key={s} onClick={() => setStatusFilter(s)} style={{ padding: "5px 12px", borderRadius: "20px", fontSize: "11.5px", fontWeight: 600, cursor: "pointer", border: active ? "none" : "1px solid #e2e8f0", background: active ? "linear-gradient(135deg,#1e40af,#2563eb)" : "#f8fafc", color: active ? "#fff" : "#64748b", transition: "all 0.15s" }}>

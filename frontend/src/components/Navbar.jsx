@@ -176,8 +176,7 @@ export default function Navbar({ onSidebarToggle }) {
           )}
         </div>
 
-        {/* Settings (placeholder) */}
-        <button style={{
+        <button onClick={() => openAccountPage("settings")} style={{
           width: "36px", height: "36px", borderRadius: "10px",
           background: "rgba(255,255,255,0.1)", border: "none",
           cursor: "pointer", display: "flex", alignItems: "center",

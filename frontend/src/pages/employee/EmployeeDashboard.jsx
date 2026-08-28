@@ -16,7 +16,7 @@ function Metric({ icon: Icon, label, value, detail, color, bg }) {
 }
 
 function DashboardContent() {
-  const { emp, attStats, leaveStats, loading, reload } = useEmployee();
+  const { emp, attStats, leaveStats, loading, error, reload } = useEmployee();
   const navigate = useDomainNav();
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState({ message: "", type: "success" });
@@ -33,6 +33,7 @@ function DashboardContent() {
   return <div className="employee-dashboard">
     <Toast message={toast.message} type={toast.type} />
     <header className="employee-dashboard__header"><div><p className="employee-dashboard__eyebrow">Employee workspace</p><h1>Welcome back, {loading ? "…" : firstName}</h1><p>Here is a focused view of your workday and HR essentials.</p></div><div className="employee-dashboard__date">{new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</div></header>
+    {error && <div role="alert" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", padding: "12px 16px", borderRadius: "10px", background: "#fff5f5", border: "1px solid #fecaca", color: "#b91c1c", fontSize: "13px", fontWeight: 600 }}><span>{error}</span><button onClick={reload} disabled={loading} style={{ border: "1px solid #fecaca", borderRadius: "7px", background: "#fff", color: "#b91c1c", cursor: loading ? "not-allowed" : "pointer", fontWeight: 700, padding: "5px 10px" }}>Retry</button></div>}
     <section className="employee-dashboard__metrics" aria-label="Monthly overview">
       <Metric icon={RiCalendarCheckLine} label="Present days" value={loading ? "—" : attStats.presentDays} detail="This month" color="#1d8f67" bg="#eaf8f2" />
       <Metric icon={RiTimeLine} label="Attendance rate" value={loading ? "—" : `${attendanceRate}%`} detail={`${attStats.workingDays || 0} recorded days`} color="#315fdb" bg="#edf2ff" />

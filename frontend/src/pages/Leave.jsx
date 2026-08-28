@@ -75,7 +75,7 @@ export default function Leave() {
       showToast(`Leave ${status.toLowerCase()} successfully`);
     } catch (err) {
       console.error(err);
-      showToast("Failed to update leave status", "error");
+      showToast(err?.userMessage || err?.response?.data?.message || "Failed to update leave status", "error");
     }
   };
 
