@@ -1,0 +1,3 @@
+-- Baseline migration for the existing enterprise schema that was created before Flyway was introduced.
+-- This marks the current production database as already migrated so future versioned schema changes can be applied safely.
+-- No destructive changes are made here.

@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
+import api               from "./services/api";
 import Login             from "./pages/Login";
 import NotFound          from "./pages/NotFound";
 import Dashboard         from "./pages/Dashboard";
@@ -18,14 +20,38 @@ import ProtectedRoute     from "./components/ProtectedRoute";
 
 /** Redirects an authenticated user from / to their correct dashboard */
 function RootRedirect() {
-  const token = localStorage.getItem("token");
-  const role  = localStorage.getItem("role");
-  if (token && role) {
-    const domainMap = { ADMIN: "admin", EMPLOYEE: "employee" };
-    const domain = domainMap[role] || "employee";
-    return <Navigate to={`/${domain}/dashboard`} replace />;
-  }
-  return <Login />;
+  const [destination, setDestination] = useState(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setDestination("login");
+      return;
+    }
+
+    api.get("/auth/me")
+      .then((response) => {
+        const serverRole = String(response?.data?.role || "").toUpperCase();
+        if (!serverRole) {
+          localStorage.clear();
+          setDestination("login");
+          return;
+        }
+
+        localStorage.setItem("role", serverRole);
+        const domainMap = { ADMIN: "admin", EMPLOYEE: "employee" };
+        const domain = domainMap[serverRole] || "employee";
+        setDestination(`/${domain}/dashboard`);
+      })
+      .catch(() => {
+        localStorage.clear();
+        setDestination("login");
+      });
+  }, []);
+
+  if (destination === "login") return <Login />;
+  if (destination) return <Navigate to={destination} replace />;
+  return <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", color: "#475569" }}>Loading…</div>;
 }
 
 /** Redirects /<domain> (no sub-path) → /<domain>/dashboard */

@@ -57,7 +57,7 @@ public class AuthService {
             }
 
             // Use employeeCode as the JWT subject (no User record needed)
-            String token = jwtService.generateToken(code);
+            String token = jwtService.generateToken(code, com.enterprise.backend.enums.Role.EMPLOYEE);
 
             return new LoginResponseDto(
                     token,
@@ -75,11 +75,15 @@ public class AuthService {
         User user = userRepository.findByEmail(dto.getEmail().trim())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        if (!Boolean.TRUE.equals(user.getActive())) {
+            throw new IllegalArgumentException("This admin account is inactive. Please contact support.");
+        }
+
         if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
             throw new RuntimeException("Invalid password");
         }
 
-        String token = jwtService.generateToken(user.getEmail());
+        String token = jwtService.generateToken(user.getEmail(), user.getRole());
 
         // Check if this admin/HR user also has an employee record
         Long employeeId = employeeRepository.findByEmail(user.getEmail())

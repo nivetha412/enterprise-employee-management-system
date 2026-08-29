@@ -37,21 +37,37 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
         try {
-            String subject = jwtService.extractEmail(header.substring(7));
-            Role role = userRepository.findByEmail(subject).filter(User::getActive)
-                    .map(User::getRole)
-                    .orElseGet(() -> employeeRepository.findByEmployeeCode(subject)
-                            .filter(Employee::getActive)
-                            .map(employee -> Role.EMPLOYEE)
-                            .orElse(null));
-            if (role != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            String token = header.substring(7);
+            String subject = jwtService.extractEmail(token);
+            Role roleFromToken = jwtService.extractRole(token);
+
+            Role role = roleFromToken;
+            if (role == null) {
+                role = userRepository.findByEmail(subject)
+                        .filter(User::getActive)
+                        .map(User::getRole)
+                        .orElseGet(() -> employeeRepository.findByEmployeeCode(subject)
+                                .filter(Employee::getActive)
+                                .map(employee -> Role.EMPLOYEE)
+                                .orElse(null));
+            }
+
+            if (role == null) {
+                SecurityContextHolder.clearContext();
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired session");
+                return;
+            }
+
+            if (SecurityContextHolder.getContext().getAuthentication() == null) {
                 var auth = new UsernamePasswordAuthenticationToken(subject, null,
                         List.of(new SimpleGrantedAuthority("ROLE_" + role.name())));
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }
         } catch (JwtException | IllegalArgumentException ignored) {
-            // Leave the request unauthenticated; Spring Security returns 401 for protected routes.
+            SecurityContextHolder.clearContext();
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired token");
+            return;
         }
         chain.doFilter(request, response);
     }
