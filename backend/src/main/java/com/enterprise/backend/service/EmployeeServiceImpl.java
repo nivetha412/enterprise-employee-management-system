@@ -6,7 +6,9 @@ import com.enterprise.backend.dto.EmployeeSelfUpdateDto;
 import com.enterprise.backend.dto.EmployeePasswordResetDto;
 import com.enterprise.backend.dto.EmployeeBasicDto;
 import com.enterprise.backend.entity.Employee;
+import com.enterprise.backend.entity.EmployeeLeaveBalance;
 import com.enterprise.backend.repository.EmployeeRepository;
+import com.enterprise.backend.repository.EmployeeLeaveBalanceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +22,7 @@ import java.util.List;
 public class EmployeeServiceImpl implements EmployeeService {
 
     private final EmployeeRepository employeeRepository;
+    private final EmployeeLeaveBalanceRepository employeeLeaveBalanceRepository;
     private final PasswordEncoder passwordEncoder;
 
     private String generateEmployeeCode() {
@@ -67,7 +70,17 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .active(true)
                 .build();
 
-        return toResponseDto(employeeRepository.save(employee));
+        Employee savedEmployee = employeeRepository.save(employee);
+        employeeLeaveBalanceRepository.save(EmployeeLeaveBalance.builder()
+            .employeeId(savedEmployee.getId())
+            .casualLeaveBalance(5)
+            .sickLeaveBalance(10)
+            .earnedLeaveBalance(15)
+            .compOffBalance(0)
+            .wfhBalance(0)
+            .build());
+
+        return toResponseDto(savedEmployee);
     }
 
     @Override
