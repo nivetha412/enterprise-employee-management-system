@@ -1,0 +1,2 @@
+-- Compatibility marker for databases that already applied the employee password hash migration.
+-- New databases receive this column from V2__bootstrap_initial_schema.sql.

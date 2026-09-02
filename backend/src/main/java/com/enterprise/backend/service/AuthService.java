@@ -39,11 +39,10 @@ public class AuthService {
     public LoginResponseDto login(LoginRequestDto dto) {
 
         // ── EMPLOYEE login: authenticate directly via employeeCode ──────────
-        // employeeCode is both the username and the password (e.g. EMP001/EMP001)
         if (dto.getEmployeeCode() != null && !dto.getEmployeeCode().isBlank()) {
-            String code = dto.getEmployeeCode().trim();
+            String code = normalizeEmployeeCode(dto.getEmployeeCode());
 
-            Employee employee = employeeRepository.findByEmployeeCode(code)
+            Employee employee = employeeRepository.findByEmployeeCodeIgnoreCase(code)
                     .orElseThrow(() -> new RuntimeException("Employee not found: " + code));
 
             if (!Boolean.TRUE.equals(employee.getActive())) {
@@ -56,12 +55,11 @@ public class AuthService {
                 throw new IllegalArgumentException("Invalid employee code or password");
             }
 
-            // Use employeeCode as the JWT subject (no User record needed)
-            String token = jwtService.generateToken(code, com.enterprise.backend.enums.Role.EMPLOYEE);
+            String token = jwtService.generateToken(employee.getEmployeeCode(), com.enterprise.backend.enums.Role.EMPLOYEE);
 
             return new LoginResponseDto(
                     token,
-                    code,
+                    employee.getEmployeeCode(),
                     "EMPLOYEE",
                     employee.getId()
             );
@@ -72,20 +70,20 @@ public class AuthService {
             throw new RuntimeException("Email is required");
         }
 
-        User user = userRepository.findByEmail(dto.getEmail().trim())
+        String email = normalizeEmail(dto.getEmail());
+        User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (!Boolean.TRUE.equals(user.getActive())) {
             throw new IllegalArgumentException("This admin account is inactive. Please contact support.");
         }
 
-        if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid password");
+        if (dto.getPassword() == null || dto.getPassword().isBlank() || !passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Invalid password");
         }
 
         String token = jwtService.generateToken(user.getEmail(), user.getRole());
 
-        // Check if this admin/HR user also has an employee record
         Long employeeId = employeeRepository.findByEmail(user.getEmail())
                 .map(Employee::getId)
                 .orElse(null);
@@ -96,5 +94,13 @@ public class AuthService {
                 user.getRole().name(),
                 employeeId
         );
+    }
+
+    private String normalizeEmail(String email) {
+        return email == null ? "" : email.trim().toLowerCase();
+    }
+
+    private String normalizeEmployeeCode(String employeeCode) {
+        return employeeCode == null ? "" : employeeCode.trim().toUpperCase();
     }
 }

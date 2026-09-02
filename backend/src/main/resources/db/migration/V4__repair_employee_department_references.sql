@@ -1,0 +1,2 @@
+-- Compatibility marker for databases that already applied the employee department repair migration.
+-- New databases receive the complete schema from V2__bootstrap_initial_schema.sql.

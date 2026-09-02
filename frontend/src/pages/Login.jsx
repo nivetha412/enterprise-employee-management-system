@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import api from "../services/api";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ROLE_TO_DOMAIN } from "../context/RoleContext";
@@ -57,6 +57,7 @@ function Login() {
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const loginInFlightRef = useRef(false);
 
   // Reset form when tab changes
   useEffect(() => {
@@ -69,16 +70,18 @@ function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (loginInFlightRef.current) return;
+
     setError("");
+    loginInFlightRef.current = true;
     setLoading(true);
     try {
       let payload;
       if (activeTab === "EMPLOYEE") {
-        // Employee code is the username; the entered password is never replaced.
-        const code = email.trim();
+        const code = email.trim().toUpperCase();
         payload = { employeeCode: code, password: password };
       } else {
-        payload = { email: email.trim(), password: password.trim() };
+        payload = { email: email.trim().toLowerCase(), password: password.trim() };
       }
 
       const response = await api.post("/auth/login", payload);
@@ -110,6 +113,7 @@ function Login() {
       const msg = err?.response?.data?.message || err?.response?.data || "";
       setError(msg || "Invalid credentials. Please try again.");
     } finally {
+      loginInFlightRef.current = false;
       setLoading(false);
     }
   };

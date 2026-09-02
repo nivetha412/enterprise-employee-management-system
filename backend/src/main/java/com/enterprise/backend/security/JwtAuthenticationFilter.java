@@ -43,10 +43,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             Role role = roleFromToken;
             if (role == null) {
-                role = userRepository.findByEmail(subject)
+                role = userRepository.findByEmailIgnoreCase(subject)
                         .filter(User::getActive)
                         .map(User::getRole)
-                        .orElseGet(() -> employeeRepository.findByEmployeeCode(subject)
+                        .orElseGet(() -> employeeRepository.findByEmployeeCodeIgnoreCase(subject)
                                 .filter(Employee::getActive)
                                 .map(employee -> Role.EMPLOYEE)
                                 .orElse(null));

@@ -37,7 +37,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleBadRequest(IllegalArgumentException ex) {
-        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+        String msg = ex.getMessage() != null ? ex.getMessage() : "Invalid request";
+        String lower = msg.toLowerCase();
+        if (lower.contains("invalid") || lower.contains("credentials") || lower.contains("password")
+                || lower.contains("inactive") || lower.contains("not found")) {
+            return buildResponse(HttpStatus.UNAUTHORIZED, msg);
+        }
+        return buildResponse(HttpStatus.BAD_REQUEST, msg);
     }
 
     @ExceptionHandler(LeaveConflictException.class)
