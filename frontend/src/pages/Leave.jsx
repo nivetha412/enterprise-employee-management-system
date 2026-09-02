@@ -34,7 +34,7 @@ export default function Leave() {
     setTimeout(() => setToast({ message: "", type: "success" }), 3000);
   };
 
-  const loadAll = async () => {
+  async function loadAll() {
     setLoading(true);
     try {
       const [leaveRes, empRes, deptRes] = await Promise.all([
@@ -51,8 +51,9 @@ export default function Leave() {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
   useEffect(() => { loadAll(); }, []);
 
   // ── Update status (approve / reject) ───────────────────────────────────────
@@ -140,6 +141,7 @@ export default function Leave() {
   }), [leaves, today]);
 
   // ── Filtered records ────────────────────────────────────────────────────────
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const filtered = useMemo(() => {
     const getEmp = id => employees.find(e => e.id === id || e.id === Number(id));
     return leaves.filter(l => {

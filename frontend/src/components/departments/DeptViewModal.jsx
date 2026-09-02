@@ -1,4 +1,4 @@
-import { RiCloseLine, RiBuilding2Line, RiTeamLine, RiMapPinLine, RiUserStarLine, RiCalendarLine, RiHashtag, RiEditLine, RiDeleteBinLine, RiCheckboxCircleLine, RiCloseCircleLine, RiTimeLine, RiCalendarCheckLine } from "react-icons/ri";
+import { RiCloseLine, RiBuilding2Line, RiMapPinLine, RiUserStarLine, RiCalendarLine, RiHashtag, RiEditLine, RiDeleteBinLine, RiCheckboxCircleLine, RiCloseCircleLine, RiTimeLine, RiCalendarCheckLine } from "react-icons/ri";
 
 const PALETTE = [
   { accent: "#2563eb", light: "#dbeafe" },

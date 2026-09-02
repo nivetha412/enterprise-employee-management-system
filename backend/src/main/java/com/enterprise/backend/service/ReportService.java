@@ -38,9 +38,7 @@ public class ReportService {
 
         // Only count today's attendance records
         LocalDate today = LocalDate.now();
-        List<Attendance> todayAttendance = attendanceRepository.findAll().stream()
-                .filter(a -> today.equals(a.getAttendanceDate()))
-                .toList();
+        List<Attendance> todayAttendance = attendanceRepository.findByAttendanceDate(today);
 
         long presentToday = todayAttendance.stream()
                 .filter(a -> "PRESENT".equals(a.getStatus()))

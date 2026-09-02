@@ -23,16 +23,17 @@ function SecLabel({ children }) {
 }
 
 export default function AttDetailModal({ record, employees, attendance, leaves, onClose }) {
-  if (!record) return null;
-
-  const emp  = employees.find(e => e.id === record.employeeId);
-  const name = emp ? `${emp.firstName} ${emp.lastName}` : `Employee #${record.employeeId}`;
+  const employeeId = record?.employeeId;
+  const emp  = employees.find(e => e.id === employeeId);
+  const name = emp ? `${emp.firstName} ${emp.lastName}` : `Employee #${employeeId}`;
 
   const empRecords = useMemo(() =>
-    attendance.filter(a => a.employeeId === record.employeeId)
+    attendance.filter(a => a.employeeId === employeeId)
       .sort((a, b) => String(b.attendanceDate).localeCompare(String(a.attendanceDate))),
-    [attendance, record.employeeId]
+    [attendance, employeeId]
   );
+
+  if (!record) return null;
 
   const presentCount  = empRecords.filter(a => a.status === "PRESENT").length;
   const absentCount   = empRecords.filter(a => a.status === "ABSENT").length;

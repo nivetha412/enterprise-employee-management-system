@@ -25,8 +25,6 @@ public class AuthController {
     public ResponseEntity<String> registerUser(
             @RequestBody RegisterUserDto dto) {
 
-        System.out.println("REGISTER API HIT");
-
         authService.registerUser(dto);
 
         return ResponseEntity.ok("User Registered Successfully");

@@ -93,8 +93,7 @@ public class LeaveService {
 
     public List<LeaveResponseDto> getMyLeaves(Authentication authentication) {
         Long employeeId = currentEmployee(authentication).getId();
-        return leaveRequestRepository.findAll().stream()
-                .filter(leave -> employeeId.equals(leave.getEmployeeId()))
+        return leaveRequestRepository.findByEmployeeId(employeeId).stream()
                 .map(this::mapToDto).toList();
     }
 
@@ -233,13 +232,14 @@ public void deleteLeave(Long id, Authentication authentication) {
                 throw new IllegalArgumentException("Backup employee must be active");
             }
         }
-        boolean overlaps = leaveRequestRepository.findAll().stream().anyMatch(existing ->
-                employeeId.equals(existing.getEmployeeId())
-                        && (excludedLeaveId == null || !excludedLeaveId.equals(existing.getId()))
+        boolean overlaps = leaveRequestRepository
+            .findByEmployeeIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+                employeeId, dto.getEndDate(), dto.getStartDate())
+            .stream().anyMatch(existing ->
+                (excludedLeaveId == null || !excludedLeaveId.equals(existing.getId()))
                         && existing.getStatus() != LeaveStatus.REJECTED
                         && existing.getStatus() != LeaveStatus.CANCELLED
-                        && !dto.getEndDate().isBefore(existing.getStartDate())
-                        && !dto.getStartDate().isAfter(existing.getEndDate()));
+            );
         if (overlaps) {
             throw new LeaveConflictException("Leave dates conflict with an existing leave request");
         }

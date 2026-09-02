@@ -12,6 +12,8 @@ public interface AttendanceRepository
 
     List<Attendance> findByEmployeeId(Long employeeId);
 
+        List<Attendance> findByAttendanceDate(LocalDate attendanceDate);
+
     Optional<Attendance> findTopByEmployeeIdAndAttendanceDateAndCheckOutTimeIsNullOrderByIdDesc(
             Long employeeId, LocalDate date);
 

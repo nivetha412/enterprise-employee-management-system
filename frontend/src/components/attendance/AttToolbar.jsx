@@ -1,4 +1,4 @@
-import { RiSearchLine, RiFilterLine, RiDownloadLine, RiRefreshLine, RiCloseLine, RiCalendarLine, RiPrinterLine, RiFileExcelLine, RiFilePdfLine } from "react-icons/ri";
+import { RiSearchLine, RiFilterLine, RiRefreshLine, RiCloseLine, RiCalendarLine, RiPrinterLine, RiFileExcelLine, RiFilePdfLine } from "react-icons/ri";
 
 const STATUS_TABS = [
   { key: "",        label: "All"     },

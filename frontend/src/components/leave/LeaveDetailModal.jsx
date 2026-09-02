@@ -40,24 +40,24 @@ export default function LeaveDetailModal({ leave, employees, allLeaves, onClose,
   const [remarks, setRemarks] = useState("");
   const [acting, setActing]   = useState(false);
 
-  if (!leave) return null;
+  const employeeId = leave?.employeeId;
+  const emp  = employees.find(e => e.id === employeeId || e.id === Number(employeeId));
+  const name = emp ? `${emp.firstName} ${emp.lastName}` : `Employee #${employeeId}`;
+  const sc   = STATUS_MAP[leave?.status] || STATUS_MAP.PENDING;
 
-  const emp  = employees.find(e => e.id === leave.employeeId || e.id === Number(leave.employeeId));
-  const name = emp ? `${emp.firstName} ${emp.lastName}` : `Employee #${leave.employeeId}`;
-  const sc   = STATUS_MAP[leave.status] || STATUS_MAP.PENDING;
-  const tc   = TYPE_COLORS[leave.leaveType] || "#64748b";
-
-  const days = leave.totalDays ?? (leave.startDate && leave.endDate
+  const days = leave?.totalDays ?? (leave?.startDate && leave?.endDate
     ? Math.max(1, Math.round((new Date(leave.endDate) - new Date(leave.startDate)) / 86400000) + 1)
     : "—");
 
   // Leave history for this employee
   const history = useMemo(() =>
     allLeaves
-      .filter(l => (l.employeeId === leave.employeeId || Number(l.employeeId) === leave.employeeId) && l.id !== leave.id)
+      .filter(l => (l.employeeId === employeeId || Number(l.employeeId) === employeeId) && l.id !== leave?.id)
       .sort((a, b) => String(b.appliedDate || b.startDate || "").localeCompare(String(a.appliedDate || a.startDate || ""))),
-    [allLeaves, leave.employeeId, leave.id]
+    [allLeaves, employeeId, leave?.id]
   );
+
+  if (!leave) return null;
 
   // Leave balance summary (from history)
   const approvedDays = allLeaves

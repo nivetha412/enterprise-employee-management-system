@@ -39,9 +39,7 @@ export default function Attendance() {
     setTimeout(() => setToast({ message: "", type: "success" }), 3000);
   };
 
-  useEffect(() => { isEmployee ? initEmployee() : loadAll(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const initEmployee = async () => {
+  async function initEmployee() {
     try {
       const empId = localStorage.getItem("employeeId");
       if (!empId) { showToast("Employee profile not linked", "error"); setLoading(false); return; }
@@ -59,9 +57,9 @@ export default function Attendance() {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const loadAll = async () => {
+  async function loadAll() {
     setLoading(true);
     try {
       const [attRes, empRes, deptRes, leaveRes] = await Promise.all([
@@ -80,7 +78,10 @@ export default function Attendance() {
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
+  useEffect(() => { isEmployee ? initEmployee() : loadAll(); }, []);
 
   const deleteAttendance = async (id) => {
     if (!window.confirm("Delete this attendance record?")) return;
@@ -154,6 +155,7 @@ export default function Attendance() {
   };
 
   // ── Filtered records ────────────────────────────────────────────────────────
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const filtered = useMemo(() => {
     const base = isEmployee && myProfile
       ? attendance.filter(a => a.employeeId === myProfile.id)

@@ -25,6 +25,8 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     @org.springframework.beans.factory.annotation.Value("${app.cors.allowed-origins}")
     private String allowedOrigins;
+    @org.springframework.beans.factory.annotation.Value("${spring.profiles.active:}")
+    private String activeProfiles;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -42,6 +44,11 @@ public class SecurityConfig {
                 .toList();
 
         if (origins.isEmpty()) {
+            if (Arrays.stream(activeProfiles.split(","))
+                    .map(String::trim)
+                    .anyMatch("prod"::equals)) {
+                throw new IllegalStateException("CORS_ALLOWED_ORIGINS must be set when the prod profile is active");
+            }
             origins = List.of("http://localhost:5173", "http://127.0.0.1:5173");
         }
 

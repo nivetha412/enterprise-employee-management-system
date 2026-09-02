@@ -61,6 +61,7 @@ function Login() {
 
   // Reset form when tab changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setEmail("");
     setPassword("");
     setError("");

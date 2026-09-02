@@ -23,16 +23,19 @@ function HBar({ label, value, max, color }) {
 function Donut({ slices, size = 96 }) {
   const total = slices.reduce((s, x) => s + x.value, 0);
   if (total === 0) return <div style={{ width: size, height: size, borderRadius: "50%", background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#94a3b8" }}>No data</div>;
-  let cum = 0;
-  const paths = slices.map(sl => {
+  const paths = slices.reduce((result, sl) => {
+    const cum = result.cumulative;
     const pct = sl.value / total;
-    const a0 = cum * 2 * Math.PI - Math.PI / 2; cum += pct;
-    const a1 = cum * 2 * Math.PI - Math.PI / 2;
+    const a0 = cum * 2 * Math.PI - Math.PI / 2;
+    const nextCum = cum + pct;
+    const a1 = nextCum * 2 * Math.PI - Math.PI / 2;
     const r = size / 2 - 10, cx = size / 2, cy = size / 2;
     const x0 = cx + r * Math.cos(a0), y0 = cy + r * Math.sin(a0);
     const x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
-    return { d: `M${cx},${cy} L${x0},${y0} A${r},${r} 0 ${pct > 0.5 ? 1 : 0},1 ${x1},${y1}Z`, color: sl.color };
-  });
+    result.paths.push({ d: `M${cx},${cy} L${x0},${y0} A${r},${r} 0 ${pct > 0.5 ? 1 : 0},1 ${x1},${y1}Z`, color: sl.color });
+    result.cumulative = nextCum;
+    return result;
+  }, { paths: [], cumulative: 0 }).paths;
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0 }}>
       {paths.map((p, i) => <path key={i} d={p.d} fill={p.color} stroke="#fff" strokeWidth={1.5} />)}

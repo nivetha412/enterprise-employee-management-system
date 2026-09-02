@@ -17,6 +17,7 @@ export default function ProtectedRoute({ children, allowedRoles }) {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRole(null);
       setLoading(false);
       return;

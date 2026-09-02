@@ -47,6 +47,7 @@ export default function Navbar({ onSidebarToggle }) {
 
   // Close dropdowns on route change
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setShowProfile(false);
     setShowNotif(false);
     setShowRole(false);

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import MainLayout from "../../layouts/MainLayout";
-import { EmployeeProvider } from "../../context/EmployeeContext";
-import { useEmployee } from "../../hooks/useEmployee";
-import { RiSettings3Line, RiBellLine, RiShieldLine, RiPaletteLine, RiLogoutBoxLine } from "react-icons/ri";
+import { RiBellLine, RiShieldLine, RiPaletteLine, RiLogoutBoxLine } from "react-icons/ri";
+
+/* eslint-disable no-unused-vars */
 
 const TABS = [
   { key: "notifications", label: "Notifications", icon: RiBellLine    },
@@ -130,76 +130,6 @@ function SecurityTab() {
         </button>
       </div>
     </div>
-  );
-}
-
-function SettingsContent() {
-  const { emp: employee, loading } = useEmployee();
-  const [tab, setTab] = useState("notifications");
-  const accountEmail = localStorage.getItem("email") || "";
-  const accountName = localStorage.getItem("name") || accountEmail.split("@")[0] || "User";
-  const accountRole = localStorage.getItem("role") || "EMPLOYEE";
-  const emp = employee || { firstName: accountName, lastName: "", employeeCode: accountRole === "ADMIN" ? "ADMIN" : "" };
-
-  const CONTENT = { notifications: <NotificationsTab />, appearance: <AppearanceTab />, security: <SecurityTab /> };
-
-  return (
-    <>
-
-      {/* Header */}
-      <div className="fade-in" style={{ background: "linear-gradient(135deg,#0f172a 0%,#1e3a8a 40%,#1e40af 70%,#2563eb 100%)", borderRadius: "20px", padding: "24px 28px", marginBottom: "20px", position: "relative", overflow: "hidden", boxShadow: "0 20px 60px rgba(30,64,175,0.3)" }}>
-        <div style={{ position: "absolute", top: "-40px", right: "-40px", width: "200px", height: "200px", borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
-        <div style={{ display: "flex", alignItems: "center", gap: "14px", position: "relative" }}>
-          <div style={{ width: "48px", height: "48px", borderRadius: "14px", background: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <RiSettings3Line size={24} color="#fff" />
-          </div>
-          <div>
-            <h1 style={{ fontSize: "20px", fontWeight: 800, color: "#fff", margin: 0 }}>Settings</h1>
-            <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "12px", marginTop: "2px" }}>Manage your preferences and account</p>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: "20px" }} className="emp-grid-2">
-        {/* Sidebar */}
-        <div style={{ background: "#fff", borderRadius: "16px", border: "1px solid #e8edf5", boxShadow: "0 4px 24px rgba(30,64,175,0.07)", padding: "16px", height: "fit-content" }}>
-          {/* Profile mini */}
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px", borderRadius: "12px", background: "linear-gradient(135deg,#eff6ff,#dbeafe)", marginBottom: "16px", border: "1px solid #bfdbfe" }}>
-            <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "linear-gradient(135deg,#60a5fa,#a78bfa)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: "14px", flexShrink: 0 }}>
-              {emp ? `${emp.firstName?.[0] ?? ""}${emp.lastName?.[0] ?? ""}`.toUpperCase() : "…"}
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: "12.5px", fontWeight: 700, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {loading ? "…" : emp ? `${emp.firstName} ${emp.lastName}` : "—"}
-              </div>
-              <div style={{ fontSize: "10.5px", color: "#64748b" }}>{emp?.employeeCode || "—"}</div>
-            </div>
-          </div>
-
-          <nav style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-            {TABS.map(({ key, label, icon: Icon }) => (
-              <button key={key} onClick={() => setTab(key)} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px", borderRadius: "10px", border: "none", cursor: "pointer", fontSize: "13px", fontWeight: tab === key ? 700 : 500, color: tab === key ? "#fff" : "#475569", background: tab === key ? "linear-gradient(135deg,rgba(59,130,246,0.35),rgba(139,92,246,0.25))" : "transparent", transition: "all 0.15s", textAlign: "left", borderLeft: tab === key ? "3px solid #60a5fa" : "3px solid transparent" }}
-                onMouseEnter={e => { if (tab !== key) e.currentTarget.style.background = "#f8fafc"; }}
-                onMouseLeave={e => { if (tab !== key) e.currentTarget.style.background = "transparent"; }}>
-                <Icon size={16} />
-                {label}
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        {/* Content */}
-        <div style={{ background: "#fff", borderRadius: "16px", border: "1px solid #e8edf5", boxShadow: "0 4px 24px rgba(30,64,175,0.07)", padding: "24px" }}>
-          <h3 style={{ fontSize: "14px", fontWeight: 700, color: "#0f172a", marginBottom: "4px" }}>
-            {TABS.find(t => t.key === tab)?.label}
-          </h3>
-          <p style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "20px" }}>
-            Manage your {TABS.find(t => t.key === tab)?.label.toLowerCase()} preferences
-          </p>
-          {CONTENT[tab]}
-        </div>
-      </div>
-    </>
   );
 }
 

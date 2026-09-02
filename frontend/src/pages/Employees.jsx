@@ -55,15 +55,8 @@ const DOCUMENTS = [
   { icon: <RiMedalLine size={16} />,     label: "Certificates", color: "#0891b2", bg: "#cffafe" },
 ];
 
-function EmployeeDrawer({ emp, onClose }) {
-  const [activeTab, setActiveTab] = useState("profile");
-  if (!emp) return null;
-  const av = getAvatarStyle(emp.firstName);
-  const typeStyle = EMP_TYPE_COLORS[emp.employmentType] || { color: "#64748b", bg: "#f1f5f9" };
-  const initials = `${emp.firstName?.[0] || ""}${emp.lastName?.[0] || ""}`.toUpperCase();
-
-  const InfoRow = ({ icon, label, value }) => (
-    <div style={{
+function EmployeeDrawerInfoRow({ icon, label, value }) {
+  return <div style={{
       display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
       borderRadius: 12, background: "rgba(255,255,255,0.7)",
       backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.9)",
@@ -80,16 +73,23 @@ function EmployeeDrawer({ emp, onClose }) {
         <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.07em" }}>{label}</div>
         <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value || "—"}</div>
       </div>
-    </div>
-  );
+    </div>;
+}
 
-  const SectionLabel = ({ children }) => (
-    <div style={{ fontSize: 10, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em", margin: "18px 0 10px", display: "flex", alignItems: "center", gap: 8 }}>
+function EmployeeDrawerSectionLabel({ children }) {
+  return <div style={{ fontSize: 10, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em", margin: "18px 0 10px", display: "flex", alignItems: "center", gap: 8 }}>
       <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg,#e2e8f0,transparent)" }} />
       {children}
       <div style={{ flex: 1, height: 1, background: "linear-gradient(270deg,#e2e8f0,transparent)" }} />
-    </div>
-  );
+    </div>;
+}
+
+function EmployeeDrawer({ emp, onClose }) {
+  const [activeTab, setActiveTab] = useState("profile");
+  if (!emp) return null;
+  const av = getAvatarStyle(emp.firstName);
+  const typeStyle = EMP_TYPE_COLORS[emp.employmentType] || { color: "#64748b", bg: "#f1f5f9" };
+  const initials = `${emp.firstName?.[0] || ""}${emp.lastName?.[0] || ""}`.toUpperCase();
 
   const tabs = [
     { id: "profile",   label: "Profile",   icon: <RiUserLine size={13} /> },
@@ -185,16 +185,16 @@ function EmployeeDrawer({ emp, onClose }) {
           {/* ── PROFILE TAB ── */}
           {activeTab === "profile" && (
             <div>
-              <SectionLabel>Personal Information</SectionLabel>
-              <InfoRow icon={<RiIdCardLine size={15} color="#1e40af" />}  label="Employee ID"   value={emp.employeeCode} />
-              <InfoRow icon={<RiUserLine size={15} color="#7c3aed" />}    label="Gender"        value={emp.gender} />
-              <InfoRow icon={<RiCalendarLine size={15} color="#d97706" />} label="Date of Birth" value={emp.dateOfBirth || emp.dob} />
-              <InfoRow icon={<RiPhoneLine size={15} color="#059669" />}   label="Phone"         value={emp.phone} />
-              <InfoRow icon={<RiMailLine size={15} color="#0891b2" />}    label="Email"         value={emp.email} />
-              <SectionLabel>Work Information</SectionLabel>
-              <InfoRow icon={<RiBuilding2Line size={15} color="#1e40af" />} label="Department"  value={emp.department} />
-              <InfoRow icon={<RiBriefcaseLine size={15} color="#7c3aed" />} label="Designation" value={emp.designation} />
-              {emp.salary && <InfoRow icon={<span style={{ fontSize: 13, fontWeight: 800, color: "#059669" }}>$</span>} label="Salary" value={`$${Number(emp.salary).toLocaleString()}`} />}
+              <EmployeeDrawerSectionLabel>Personal Information</EmployeeDrawerSectionLabel>
+              <EmployeeDrawerInfoRow icon={<RiIdCardLine size={15} color="#1e40af" />}  label="Employee ID"   value={emp.employeeCode} />
+              <EmployeeDrawerInfoRow icon={<RiUserLine size={15} color="#7c3aed" />}    label="Gender"        value={emp.gender} />
+              <EmployeeDrawerInfoRow icon={<RiCalendarLine size={15} color="#d97706" />} label="Date of Birth" value={emp.dateOfBirth || emp.dob} />
+              <EmployeeDrawerInfoRow icon={<RiPhoneLine size={15} color="#059669" />}   label="Phone"         value={emp.phone} />
+              <EmployeeDrawerInfoRow icon={<RiMailLine size={15} color="#0891b2" />}    label="Email"         value={emp.email} />
+              <EmployeeDrawerSectionLabel>Work Information</EmployeeDrawerSectionLabel>
+              <EmployeeDrawerInfoRow icon={<RiBuilding2Line size={15} color="#1e40af" />} label="Department"  value={emp.department} />
+              <EmployeeDrawerInfoRow icon={<RiBriefcaseLine size={15} color="#7c3aed" />} label="Designation" value={emp.designation} />
+              {emp.salary && <EmployeeDrawerInfoRow icon={<span style={{ fontSize: 13, fontWeight: 800, color: "#059669" }}>$</span>} label="Salary" value={`$${Number(emp.salary).toLocaleString()}`} />}
             </div>
           )}
 
@@ -351,14 +351,12 @@ function Employees() {
   const [showBulkDeptModal, setShowBulkDeptModal] = useState(false);
   const [showBulkManagerModal, setShowBulkManagerModal] = useState(false);
 
-  useEffect(() => { fetchEmployees(); fetchDepartmentList(); }, []);
-
   const showToast = (message, type = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast({ message: "", type: "success" }), 3000);
   };
 
-  const fetchEmployees = async () => {
+  async function fetchEmployees() {
     setLoading(true);
     try {
       const response = await api.get("/employees");
@@ -369,14 +367,17 @@ function Employees() {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const fetchDepartmentList = async () => {
+  async function fetchDepartmentList() {
     try {
       const res = await api.get("/departments");
       setDepartments(res.data);
     } catch { /* non-critical */ }
-  };
+  }
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
+  useEffect(() => { fetchEmployees(); fetchDepartmentList(); }, []);
 
   const validate = () => {
     const e = {};

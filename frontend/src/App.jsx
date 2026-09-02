@@ -25,6 +25,7 @@ function RootRedirect() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDestination("login");
       return;
     }

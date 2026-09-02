@@ -41,18 +41,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String subject = jwtService.extractEmail(token);
             Role roleFromToken = jwtService.extractRole(token);
 
-            Role role = roleFromToken;
-            if (role == null) {
-                role = userRepository.findByEmailIgnoreCase(subject)
-                        .filter(User::getActive)
-                        .map(User::getRole)
-                        .orElseGet(() -> employeeRepository.findByEmployeeCodeIgnoreCase(subject)
-                                .filter(Employee::getActive)
-                                .map(employee -> Role.EMPLOYEE)
-                                .orElse(null));
+            if (roleFromToken == null) {
+                SecurityContextHolder.clearContext();
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired session");
+                return;
             }
 
-            if (role == null) {
+            boolean accountIsValid = switch (roleFromToken) {
+                case ADMIN -> userRepository.findByEmailIgnoreCase(subject)
+                        .filter(User::getActive)
+                        .map(user -> user.getRole() == roleFromToken)
+                        .orElse(false);
+                case EMPLOYEE -> employeeRepository.findByEmployeeCodeIgnoreCase(subject)
+                        .filter(Employee::getActive)
+                        .map(employee -> true)
+                        .orElse(false);
+            };
+
+            if (!accountIsValid) {
                 SecurityContextHolder.clearContext();
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired session");
                 return;
@@ -60,7 +66,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (SecurityContextHolder.getContext().getAuthentication() == null) {
                 var auth = new UsernamePasswordAuthenticationToken(subject, null,
-                        List.of(new SimpleGrantedAuthority("ROLE_" + role.name())));
+                        List.of(new SimpleGrantedAuthority("ROLE_" + roleFromToken.name())));
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }

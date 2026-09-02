@@ -42,6 +42,7 @@ export default function Dashboard() {
     }
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadDashboard(); }, [loadDashboard]);
   const values = { ...report, pendingLeaves };
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
