@@ -4,8 +4,10 @@ import com.enterprise.backend.dto.DepartmentRequestDto;
 import com.enterprise.backend.dto.DepartmentResponseDto;
 import com.enterprise.backend.entity.Department;
 import com.enterprise.backend.repository.DepartmentRepository;
+import com.enterprise.backend.repository.EmployeeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -15,6 +17,7 @@ import java.util.List;
 public class DepartmentServiceImpl implements DepartmentService {
 
     private final DepartmentRepository departmentRepository;
+    private final EmployeeRepository employeeRepository;
 
     @Override
     public DepartmentResponseDto createDepartment(
@@ -81,6 +84,7 @@ public DepartmentResponseDto getDepartmentById(Long id) {
             .build();
 }
 @Override
+@Transactional
 public DepartmentResponseDto updateDepartment(
         Long id,
         DepartmentRequestDto dto) {
@@ -96,6 +100,8 @@ public DepartmentResponseDto updateDepartment(
 
     Department updatedDepartment =
             departmentRepository.save(department);
+    employeeRepository.updateLegacyDepartmentNameByDepartmentEntityId(
+            updatedDepartment.getId(), updatedDepartment.getDepartmentName());
 
     return DepartmentResponseDto.builder()
             .id(updatedDepartment.getId())
@@ -110,10 +116,15 @@ public DepartmentResponseDto updateDepartment(
 }
 
 @Override
+@Transactional
 public void deleteDepartment(Long id) {
 
     Department department = departmentRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Department Not Found"));
+
+    if (employeeRepository.countByDepartmentEntityId(id) > 0) {
+        throw new IllegalArgumentException("Department cannot be deleted while employees are assigned to it");
+    }
 
     departmentRepository.delete(department);
 }

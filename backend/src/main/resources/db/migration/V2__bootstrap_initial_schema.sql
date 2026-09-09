@@ -82,7 +82,50 @@ CREATE TABLE IF NOT EXISTS employee_leave_balance (
     PRIMARY KEY (id)
 ) ENGINE=InnoDB;
 
-CREATE INDEX idx_attendance_employee_date ON attendance (employee_id, attendance_date);
-CREATE INDEX idx_leave_requests_employee_status ON leave_requests (employee_id, status);
-CREATE INDEX idx_leave_requests_backup_employee ON leave_requests (backup_employee_id);
-CREATE INDEX idx_employee_leave_balance_employee ON employee_leave_balance (employee_id);
+-- MySQL does not support CREATE INDEX IF NOT EXISTS.  V2 also needs to run
+-- safely when it is used to bootstrap a database where the tables/indexes
+-- already existed before Flyway was introduced, so create each index only
+-- when its name is absent from the current schema.
+DELIMITER $$
+CREATE PROCEDURE ensure_v2_indexes()
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.statistics
+        WHERE table_schema = DATABASE()
+          AND table_name = 'attendance'
+          AND index_name = 'idx_attendance_employee_date'
+    ) THEN
+        CREATE INDEX idx_attendance_employee_date ON attendance (employee_id, attendance_date);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.statistics
+        WHERE table_schema = DATABASE()
+          AND table_name = 'leave_requests'
+          AND index_name = 'idx_leave_requests_employee_status'
+    ) THEN
+        CREATE INDEX idx_leave_requests_employee_status ON leave_requests (employee_id, status);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.statistics
+        WHERE table_schema = DATABASE()
+          AND table_name = 'leave_requests'
+          AND index_name = 'idx_leave_requests_backup_employee'
+    ) THEN
+        CREATE INDEX idx_leave_requests_backup_employee ON leave_requests (backup_employee_id);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.statistics
+        WHERE table_schema = DATABASE()
+          AND table_name = 'employee_leave_balance'
+          AND index_name = 'idx_employee_leave_balance_employee'
+    ) THEN
+        CREATE INDEX idx_employee_leave_balance_employee ON employee_leave_balance (employee_id);
+    END IF;
+END$$
+DELIMITER ;
+
+CALL ensure_v2_indexes();
+DROP PROCEDURE ensure_v2_indexes;

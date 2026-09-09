@@ -7,8 +7,10 @@ import com.enterprise.backend.dto.EmployeePasswordResetDto;
 import com.enterprise.backend.dto.EmployeeBasicDto;
 import com.enterprise.backend.entity.Employee;
 import com.enterprise.backend.entity.EmployeeLeaveBalance;
+import com.enterprise.backend.entity.Department;
 import com.enterprise.backend.repository.EmployeeRepository;
 import com.enterprise.backend.repository.EmployeeLeaveBalanceRepository;
+import com.enterprise.backend.repository.DepartmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     private final EmployeeRepository employeeRepository;
     private final EmployeeLeaveBalanceRepository employeeLeaveBalanceRepository;
+    private final DepartmentRepository departmentRepository;
     private final PasswordEncoder passwordEncoder;
 
     private String generateEmployeeCode() {
@@ -48,6 +51,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         if (employeeRepository.findByEmail(dto.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Employee email already exists");
         }
+        Department department = resolveDepartment(dto.getDepartment());
 
         // patch existing employees that have no code
         for (Employee e : employeeRepository.findEmployeesWithoutCode()) {
@@ -65,7 +69,8 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .gender(dto.getGender())
                 .designation(dto.getDesignation())
                 .salary(dto.getSalary())
-                .department(dto.getDepartment())
+                .department(department.getDepartmentName())
+                .departmentEntity(department)
                 .employmentType(dto.getEmploymentType())
                 .active(true)
                 .build();
@@ -109,6 +114,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         employeeRepository.findByEmail(dto.getEmail())
                 .filter(existing -> !existing.getId().equals(id))
                 .ifPresent(existing -> { throw new IllegalArgumentException("Employee email already exists"); });
+        Department department = resolveDepartment(dto.getDepartment());
 
         employee.setFirstName(dto.getFirstName());
         employee.setLastName(dto.getLastName());
@@ -117,7 +123,8 @@ public class EmployeeServiceImpl implements EmployeeService {
         employee.setGender(dto.getGender());
         employee.setDesignation(dto.getDesignation());
         employee.setSalary(dto.getSalary());
-        employee.setDepartment(dto.getDepartment());
+        employee.setDepartment(department.getDepartmentName());
+        employee.setDepartmentEntity(department);
         employee.setEmploymentType(dto.getEmploymentType());
         // Allow bulk activate/deactivate — only update if explicitly provided
         if (dto.getActive() != null) {
@@ -192,6 +199,11 @@ public class EmployeeServiceImpl implements EmployeeService {
         return employeeRepository.findByEmployeeCode(subject)
                 .or(() -> employeeRepository.findByEmail(subject))
                 .orElseThrow(() -> new RuntimeException("Employee Not Found"));
+    }
+
+    private Department resolveDepartment(String departmentName) {
+        return departmentRepository.findByDepartmentNameIgnoreCase(departmentName.trim())
+                .orElseThrow(() -> new IllegalArgumentException("Department does not exist"));
     }
 
     private EmployeeResponseDto toResponseDto(Employee e) {

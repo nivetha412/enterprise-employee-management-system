@@ -41,6 +41,10 @@ private Double salary;
 
 private String department;
 
+@ManyToOne(fetch = FetchType.LAZY)
+@JoinColumn(name = "department_id", foreignKey = @ForeignKey(name = "fk_employee_department"))
+private Department departmentEntity;
+
 private String employmentType;
 
 private Boolean active;

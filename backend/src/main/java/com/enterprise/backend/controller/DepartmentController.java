@@ -25,12 +25,14 @@ public class DepartmentController {
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public List<DepartmentResponseDto> getAllDepartments() {
 
         return departmentService.getAllDepartments();
     }
     @GetMapping("/{id}")
-public DepartmentResponseDto getDepartmentById(
+    @PreAuthorize("hasRole('ADMIN')")
+    public DepartmentResponseDto getDepartmentById(
         @PathVariable Long id) {
 
     return departmentService.getDepartmentById(id);
