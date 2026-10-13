@@ -43,7 +43,7 @@ public class AuthService {
             String code = normalizeEmployeeCode(dto.getEmployeeCode());
 
             Employee employee = employeeRepository.findByEmployeeCodeIgnoreCase(code)
-                    .orElseThrow(() -> new RuntimeException("Employee not found: " + code));
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid employee code or password"));
 
             if (!Boolean.TRUE.equals(employee.getActive())) {
                 throw new IllegalArgumentException("This employee account is inactive. Please contact HR.");
@@ -72,7 +72,7 @@ public class AuthService {
 
         String email = normalizeEmail(dto.getEmail());
         User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
 
         if (!Boolean.TRUE.equals(user.getActive())) {
             throw new IllegalArgumentException("This admin account is inactive. Please contact support.");

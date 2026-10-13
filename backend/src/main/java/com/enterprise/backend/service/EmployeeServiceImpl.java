@@ -44,10 +44,6 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     @Transactional
     public EmployeeResponseDto createEmployee(EmployeeRequestDto dto) {
-
-        if (dto.getInitialPassword() == null || dto.getInitialPassword().isBlank()) {
-            throw new IllegalArgumentException("An initial password is required when creating an employee");
-        }
         if (employeeRepository.findByEmail(dto.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Employee email already exists");
         }
@@ -59,12 +55,13 @@ public class EmployeeServiceImpl implements EmployeeService {
             employeeRepository.save(e);
         }
 
+        String employeeCode = generateEmployeeCode();
         Employee employee = Employee.builder()
-                .employeeCode(generateEmployeeCode())
+                .employeeCode(employeeCode)
                 .firstName(dto.getFirstName())
                 .lastName(dto.getLastName())
                 .email(dto.getEmail())
-                .passwordHash(passwordEncoder.encode(dto.getInitialPassword()))
+                .passwordHash(passwordEncoder.encode(employeeCode))
                 .phone(dto.getPhone())
                 .gender(dto.getGender())
                 .designation(dto.getDesignation())

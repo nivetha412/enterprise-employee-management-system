@@ -388,7 +388,6 @@ function Employees() {
     if (!form.designation.trim())    e.designation    = "Required";
     if (!form.department.trim())     e.department     = "Required";
     if (!form.employmentType.trim()) e.employmentType = "Required";
-    if (!editingId && form.initialPassword.length < 12) e.initialPassword = "Use at least 12 characters";
     if (form.salary && isNaN(Number(form.salary))) e.salary = "Must be a number";
     if (form.salary && Number(form.salary) <= 0)   e.salary = "Must be positive";
     setErrors(e);
@@ -422,7 +421,6 @@ function Employees() {
         salary:         form.salary ? Number(form.salary) : null,
         department:     form.department,
         employmentType: form.employmentType,
-        initialPassword: form.initialPassword,
       });
       resetForm();
       fetchEmployees();
@@ -733,11 +731,13 @@ function Employees() {
                 <option value="INTERN">Intern</option>
               </select>
             </Field>
-            <Field label={editingId ? "Reset Password (optional)" : "Initial Password *"} error={errors.initialPassword}>
-              <input name="initialPassword" type="password" autoComplete="new-password" style={inputStyle("initialPassword")} placeholder="At least 12 characters"
-                value={form.initialPassword} onChange={e => handleChange("initialPassword", e.target.value)}
-                onFocus={onFocus} onBlur={onBlur} />
-            </Field>
+            {editingId && (
+              <Field label="Reset Password (optional)" error={errors.initialPassword}>
+                <input name="initialPassword" type="password" autoComplete="new-password" style={inputStyle("initialPassword")}
+                  value={form.initialPassword} onChange={e => handleChange("initialPassword", e.target.value)}
+                  onFocus={onFocus} onBlur={onBlur} />
+              </Field>
+            )}
           </div>
 
           <div style={{ display: "flex", gap: "10px", marginTop: "20px", paddingTop: "16px", borderTop: "1px solid var(--border)" }}>

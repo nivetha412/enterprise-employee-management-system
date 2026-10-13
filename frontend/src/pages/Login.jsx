@@ -28,7 +28,7 @@ const ROLE_TABS = [
     field1Label: "Employee Code",
     field1Placeholder: "",
     field1Type: "text",
-    field2Label: "Employee Code (Password)",
+    field2Label: "Password",
     field2Placeholder: "",
   },
 ];
@@ -82,7 +82,7 @@ function Login() {
         const code = email.trim().toUpperCase();
         payload = { employeeCode: code, password: password };
       } else {
-        payload = { email: email.trim().toLowerCase(), password: password.trim() };
+        payload = { email: email.trim().toLowerCase(), password };
       }
 
       const response = await api.post("/auth/login", payload);
@@ -111,8 +111,19 @@ function Login() {
       navigate(`/${domain}/dashboard`, { replace: true });
     } catch (err) {
       console.error(err);
-      const msg = err?.response?.data?.message || err?.response?.data || "";
-      setError(msg || "Invalid credentials. Please try again.");
+      const responseData = err?.response?.data;
+      const status = err?.response?.status;
+      let msg;
+      if (status === 502 || !err?.response) {
+        msg = "Backend server is unreachable. Start the backend on port 8080 and check the database connection.";
+      } else if (status === 401) {
+        msg = responseData?.message || "Incorrect login ID or password. Check that you selected the correct role.";
+      } else if (typeof responseData === "string") {
+        msg = responseData;
+      } else {
+        msg = responseData?.message || err?.userMessage || err?.message;
+      }
+      setError(msg || "Login failed. Check that you selected the correct role and entered the matching login ID and password.");
     } finally {
       loginInFlightRef.current = false;
       setLoading(false);

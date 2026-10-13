@@ -2,7 +2,6 @@ package com.enterprise.backend.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
@@ -36,7 +35,6 @@ public class EmployeeRequestDto {
     // Optional: used by bulk activate/deactivate
     private Boolean active;
 
-    /** Admin-provided one-time initial password. It is BCrypt-hashed and never returned. */
-    @Size(min = 12, max = 128, message = "Initial password must be between 12 and 128 characters")
+    /** Optional password override when editing an employee. */
     private String initialPassword;
 }
