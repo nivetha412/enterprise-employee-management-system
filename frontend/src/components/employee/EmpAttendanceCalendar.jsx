@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getBusinessCalendarDate } from "../../utils/businessTime";
 import { RiArrowLeftSLine, RiArrowRightSLine } from "react-icons/ri";
 
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -26,7 +27,7 @@ const STATUS_STYLE = {
 const LEGEND = ["present","absent","late","leave","holiday","weekend"];
 
 export default function EmpAttendanceCalendar({ attendanceMap = MOCK_DATA }) {
-  const today = new Date();
+  const today = getBusinessCalendarDate();
   const [year,  setYear]  = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
 

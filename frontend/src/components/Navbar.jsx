@@ -291,7 +291,7 @@ export default function Navbar({ onSidebarToggle }) {
               </div>
 
               {[
-                { icon: <RiUserLine size={15} />, label: "My Profile", page: "profile" },
+                ...(role === "EMPLOYEE" ? [{ icon: <RiUserLine size={15} />, label: "My Profile", page: "profile" }] : []),
                 { icon: <RiSettings3Line size={15} />, label: "Settings", page: "settings" },
               ].map(item => (
                 <button key={item.label} onClick={() => openAccountPage(item.page)} style={{

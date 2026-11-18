@@ -5,10 +5,12 @@ import { EmployeeProvider } from "../../context/EmployeeContext";
 import { useEmployee } from "../../hooks/useEmployee";
 import { useDomainNav } from "../../context/RoleContext";
 import api from "../../services/api";
+import { formatBusinessDate } from "../../utils/businessTime";
 import { Toast } from "../../styles/ui.jsx";
 import EmpDashLeaveCard from "../../components/employee/EmpDashLeaveCard";
 import EmpDashProfileCard from "../../components/employee/EmpDashProfileCard";
 import EmpWorkdayCard from "../../components/employee/EmpWorkdayCard";
+import EmpDashActivity from "../../components/employee/EmpDashActivity";
 import "./EmployeeDashboard.css";
 
 function Metric({ icon: Icon, label, value, detail, color, bg }) {
@@ -27,12 +29,12 @@ function DashboardContent() {
     if (!emp?.id) return showToast("Your employee profile is still loading. Please try again.", "error");
     setBusy(true);
     try { await api.post(endpoint, { employeeId: emp.id }); await reload(); showToast(endpoint.includes("checkin") ? "Check-in recorded successfully." : "Check-out recorded successfully."); }
-    catch (err) { showToast(err?.response?.data?.message || "We couldn't update your attendance. Please try again.", "error"); await reload(); }
+    catch (err) { showToast(err?.userMessage || "We couldn't update your attendance. Please try again.", "error"); await reload(); }
     finally { setBusy(false); }
   };
   return <div className="employee-dashboard">
     <Toast message={toast.message} type={toast.type} />
-    <header className="employee-dashboard__header"><div><p className="employee-dashboard__eyebrow">Employee workspace</p><h1>Welcome back, {loading ? "…" : firstName}</h1><p>Here is a focused view of your workday and HR essentials.</p></div><div className="employee-dashboard__date">{new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</div></header>
+    <header className="employee-dashboard__header"><div><p className="employee-dashboard__eyebrow">Employee workspace</p><h1>Welcome back, {loading ? "…" : firstName}</h1><p>Here is a focused view of your workday and HR essentials.</p></div><div className="employee-dashboard__date">{formatBusinessDate(new Date(), { weekday: "long", month: "long", day: "numeric" })}</div></header>
     {error && <div role="alert" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", padding: "12px 16px", borderRadius: "10px", background: "#fff5f5", border: "1px solid #fecaca", color: "#b91c1c", fontSize: "13px", fontWeight: 600 }}><span>{error}</span><button onClick={reload} disabled={loading} style={{ border: "1px solid #fecaca", borderRadius: "7px", background: "#fff", color: "#b91c1c", cursor: loading ? "not-allowed" : "pointer", fontWeight: 700, padding: "5px 10px" }}>Retry</button></div>}
     <section className="employee-dashboard__metrics" aria-label="Monthly overview">
       <Metric icon={RiCalendarCheckLine} label="Present days" value={loading ? "—" : attStats.presentDays} detail="This month" color="#1d8f67" bg="#eaf8f2" />
@@ -42,6 +44,7 @@ function DashboardContent() {
     </section>
     <section className="employee-dashboard__primary"><EmpWorkdayCard busy={busy} onCheckIn={() => updateAttendance("/attendance/checkin")} onCheckOut={() => updateAttendance("/attendance/checkout")} /><aside className="employee-dashboard__actions"><div><p className="employee-dashboard__eyebrow">Quick access</p><h2>Take care of your day</h2></div><button onClick={() => navigate("/leave")}><RiCalendarCheckLine /> Apply for leave</button><button onClick={() => navigate("/attendance")}><RiTimeLine /> View attendance</button><button onClick={() => navigate("/profile")}><RiUserLine /> Update profile</button></aside></section>
     <section className="employee-dashboard__secondary"><EmpDashLeaveCard /><EmpDashProfileCard /></section>
+    <section style={{ marginTop: 20 }}><EmpDashActivity /></section>
   </div>;
 }
 export default function EmployeeDashboard() { return <EmployeeProvider><MainLayout><DashboardContent /></MainLayout></EmployeeProvider>; }

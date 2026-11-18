@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useEmployee } from "../../hooks/useEmployee";
+import { formatBusinessDate, getBusinessDateString } from "../../utils/businessTime";
 
 const TABS = [
   { key: "all",        label: "All"        },
@@ -19,13 +20,15 @@ const STATUS_CFG = {
 
 function fmt(dateStr) {
   if (!dateStr) return "—";
-  const d = new Date(dateStr);
-  const today = new Date();
-  const diff  = Math.floor((today - d) / 86400000);
+  const today = getBusinessDateString();
+  const [todayYear, todayMonth, todayDay] = today.split("-").map(Number);
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const diff = Math.floor((Date.UTC(todayYear, todayMonth - 1, todayDay) - Date.UTC(year, month - 1, day)) / 86400000);
+  if (diff < 0) return "Upcoming";
   if (diff === 0) return "Today";
   if (diff === 1) return "Yesterday";
   if (diff < 7)  return `${diff} days ago`;
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return formatBusinessDate(dateStr, { month: "short", day: "numeric" });
 }
 
 export default function EmpDashActivity() {

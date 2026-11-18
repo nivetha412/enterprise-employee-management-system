@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import api from "../services/api";
 import MainLayout from "../layouts/MainLayout";
 import { Toast } from "../styles/ui.jsx";
+import { getBusinessDateString } from "../utils/businessTime";
 
 import LeaveHeader      from "../components/leave/LeaveHeader.jsx";
 import LeaveKPICards    from "../components/leave/LeaveKPICards.jsx";
@@ -27,7 +28,7 @@ export default function Leave() {
   // Detail modal
   const [viewLeave, setViewLeave] = useState(null);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getBusinessDateString();
 
   const showToast = (msg, type = "success") => {
     setToast({ message: msg, type });
@@ -47,7 +48,7 @@ export default function Leave() {
       setDepartments(deptRes.data);
     } catch (err) {
       console.error(err);
-      showToast("Failed to load leave data", "error");
+      showToast(err?.userMessage || "Unable to load leave data. Please try again.", "error");
     } finally {
       setLoading(false);
     }
@@ -76,7 +77,7 @@ export default function Leave() {
       showToast(`Leave ${status.toLowerCase()} successfully`);
     } catch (err) {
       console.error(err);
-      showToast(err?.userMessage || err?.response?.data?.message || "Failed to update leave status", "error");
+      showToast(err?.userMessage || "Unable to update this leave request.", "error");
     }
   };
 
@@ -92,7 +93,7 @@ export default function Leave() {
       showToast("Leave request deleted");
     } catch (err) {
       console.error(err);
-      showToast("Failed to delete leave request", "error");
+      showToast(err?.userMessage || "Unable to delete this leave request.", "error");
     }
   };
 

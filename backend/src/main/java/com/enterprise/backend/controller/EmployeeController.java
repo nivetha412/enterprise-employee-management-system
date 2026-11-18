@@ -1,13 +1,16 @@
 package com.enterprise.backend.controller;
 import com.enterprise.backend.dto.EmployeeRequestDto;
 import com.enterprise.backend.dto.EmployeeResponseDto;
+import com.enterprise.backend.dto.EmployeeProvisioningResponseDto;
 import com.enterprise.backend.dto.EmployeeSelfUpdateDto;
 import com.enterprise.backend.dto.EmployeePasswordResetDto;
+import com.enterprise.backend.dto.EmployeePasswordChangeDto;
 import com.enterprise.backend.service.EmployeeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.CacheControl;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -32,6 +35,14 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.updateMyProfile(authentication, dto));
     }
 
+    @PutMapping("/me/password")
+    @PreAuthorize("hasRole('EMPLOYEE')")
+    public ResponseEntity<Void> changeMyPassword(Authentication authentication,
+            @Valid @RequestBody EmployeePasswordChangeDto dto) {
+        employeeService.changeMyPassword(authentication, dto);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/leave-backups")
     @PreAuthorize("hasRole('EMPLOYEE')")
     public ResponseEntity<List<com.enterprise.backend.dto.EmployeeBasicDto>> getLeaveBackupEmployees(
@@ -47,8 +58,10 @@ public class EmployeeController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<EmployeeResponseDto> createEmployee(@Valid @RequestBody EmployeeRequestDto dto) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(employeeService.createEmployee(dto));
+    public ResponseEntity<EmployeeProvisioningResponseDto> createEmployee(@Valid @RequestBody EmployeeRequestDto dto) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .cacheControl(CacheControl.noStore())
+                .body(employeeService.createEmployee(dto));
     }
 
     @GetMapping

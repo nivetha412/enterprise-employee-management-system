@@ -35,7 +35,7 @@ class DepartmentServiceImplTest {
         when(departmentRepository.findById(7L)).thenReturn(Optional.of(department));
         when(employeeRepository.countByDepartmentEntityId(7L)).thenReturn(1L);
 
-        assertThrows(IllegalArgumentException.class, () -> departmentService.deleteDepartment(7L));
+        assertThrows(com.enterprise.backend.exception.BusinessRuleException.class, () -> departmentService.deleteDepartment(7L));
 
         verify(departmentRepository, never()).delete(department);
     }

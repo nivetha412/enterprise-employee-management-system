@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useEmployee } from "../../hooks/useEmployee";
+import { getBusinessHour } from "../../utils/businessTime";
 
 function getGreeting() {
-  const h = new Date().getHours();
+  const h = getBusinessHour();
   if (h < 12) return { text: "Good Morning",   emoji: "🌅", sub: "Ready to have a productive day?" };
   if (h < 17) return { text: "Good Afternoon", emoji: "☀️", sub: "Keep up the great work!" };
   return       { text: "Good Evening",   emoji: "🌙", sub: "Hope you had a great day!" };

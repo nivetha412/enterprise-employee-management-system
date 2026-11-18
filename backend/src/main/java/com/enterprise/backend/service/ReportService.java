@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.Clock;
 import java.util.List;
 
 @Service
@@ -21,6 +22,7 @@ public class ReportService {
     private final DepartmentRepository departmentRepository;
 
     private final AttendanceRepository attendanceRepository;
+    private final Clock businessClock;
 
     public DashboardReportDto getDashboardReport() {
 
@@ -37,7 +39,7 @@ public class ReportService {
         long inactiveEmployees = totalEmployees - activeEmployees;
 
         // Only count today's attendance records
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(businessClock);
         List<Attendance> todayAttendance = attendanceRepository.findByAttendanceDate(today);
 
         long presentToday = todayAttendance.stream()

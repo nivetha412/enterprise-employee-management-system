@@ -1,4 +1,5 @@
 import { RiCloseLine, RiBuilding2Line, RiMapPinLine, RiUserStarLine, RiCalendarLine, RiHashtag, RiEditLine, RiDeleteBinLine, RiCheckboxCircleLine, RiCloseCircleLine, RiTimeLine, RiCalendarCheckLine } from "react-icons/ri";
+import { formatBusinessDate } from "../../utils/businessTime";
 
 const PALETTE = [
   { accent: "#2563eb", light: "#dbeafe" },
@@ -168,7 +169,7 @@ export default function DeptViewModal({ dept, deptEmployees, attendance, leaves,
             <div style={{ fontSize: 11, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>Department Information</div>
             <InfoRow icon={<RiUserStarLine size={15} />} label="Department Head" value={dept.managerName} accent={p.accent} />
             <InfoRow icon={<RiMapPinLine size={15} />}   label="Location"        value={dept.location}    accent={p.accent} />
-            <InfoRow icon={<RiCalendarLine size={15} />} label="Created Date"    value={dept.createdDate ? new Date(dept.createdDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : null} accent={p.accent} />
+            <InfoRow icon={<RiCalendarLine size={15} />} label="Created Date"    value={dept.createdDate ? formatBusinessDate(dept.createdDate, { year: "numeric", month: "long", day: "numeric" }) : null} accent={p.accent} />
             {dept.description && (
               <div style={{ padding: "10px 14px", borderRadius: 12, background: "#f8fafc", border: "1px solid #f1f5f9", fontSize: 12.5, color: "#475569", lineHeight: 1.5 }}>
                 {dept.description}

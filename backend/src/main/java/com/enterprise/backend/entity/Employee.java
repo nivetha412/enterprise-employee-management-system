@@ -48,4 +48,8 @@ private Department departmentEntity;
 private String employmentType;
 
 private Boolean active;
+
+@Column(name = "must_change_password", nullable = false)
+@Builder.Default
+private Boolean mustChangePassword = false;
 }

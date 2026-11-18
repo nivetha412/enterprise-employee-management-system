@@ -37,6 +37,7 @@ export default function ProtectedRoute({ children, allowedRoles }) {
         }
 
         localStorage.setItem("role", serverRole);
+        localStorage.setItem("mustChangePassword", String(response?.data?.mustChangePassword === true));
         setRole(serverRole);
         setLoading(false);
       })
@@ -66,6 +67,12 @@ export default function ProtectedRoute({ children, allowedRoles }) {
   if (expectedRole && expectedRole !== role) {
     const correctDomain = ROLE_TO_DOMAIN[role] || "employee";
     return <Navigate to={`/${correctDomain}/dashboard`} replace />;
+  }
+
+  if (role === "EMPLOYEE"
+      && localStorage.getItem("mustChangePassword") === "true"
+      && location.pathname !== "/employee/settings") {
+    return <Navigate to="/employee/settings" replace state={{ passwordChangeRequired: true }} />;
   }
 
   if (allowedRoles && !allowedRoles.includes(role)) {

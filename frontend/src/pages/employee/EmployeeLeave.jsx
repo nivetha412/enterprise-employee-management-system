@@ -48,7 +48,7 @@ function ApplyModal({ emp, allEmployees, onClose, onSuccess }) {
       onSuccess();
       onClose();
     } catch (err) {
-      setError(err?.response?.data?.message || err?.response?.data || "Failed to apply leave");
+      setError(err?.userMessage || "Unable to apply for leave. Please try again.");
     } finally { setLoading(false); }
   };
 
@@ -203,7 +203,7 @@ function LeaveContent() {
       await reload();
       showToast("Leave request cancelled");
     } catch (err) {
-      showToast(err?.response?.data?.message || "Failed to cancel", "error");
+      showToast(err?.userMessage || "Unable to cancel this leave request.", "error");
     }
   };
 

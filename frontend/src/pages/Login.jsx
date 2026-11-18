@@ -44,7 +44,9 @@ function Login() {
     if (token && role) {
       const domainMap = { ADMIN: "admin", EMPLOYEE: "employee" };
       const domain = domainMap[role] || "employee";
-      navigate(`/${domain}/dashboard`, { replace: true });
+      navigate(role === "EMPLOYEE" && localStorage.getItem("mustChangePassword") === "true"
+        ? "/employee/settings"
+        : `/${domain}/dashboard`, { replace: true });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -100,6 +102,7 @@ function Login() {
       localStorage.setItem("token",      data.token);
       localStorage.setItem("email",      data.email);
       localStorage.setItem("role",       String(data.role).toUpperCase());
+      localStorage.setItem("mustChangePassword", String(data.mustChangePassword === true));
       if (data.employeeId) {
         localStorage.setItem("employeeId", String(data.employeeId));
       }
@@ -108,7 +111,9 @@ function Login() {
       }
 
       const domain = ROLE_TO_DOMAIN[String(data.role).toUpperCase()] || "employee";
-      navigate(`/${domain}/dashboard`, { replace: true });
+      navigate(String(data.role).toUpperCase() === "EMPLOYEE" && data.mustChangePassword === true
+        ? "/employee/settings"
+        : `/${domain}/dashboard`, { replace: true });
     } catch (err) {
       console.error(err);
       const responseData = err?.response?.data;

@@ -1,5 +1,6 @@
 import { RiBarChartLine, RiFocus3Line, RiBookOpenLine, RiArrowLeftSLine, RiArrowRightSLine } from "react-icons/ri";
 import { useState } from "react";
+import { getBusinessCalendarDate } from "../../utils/businessTime";
 
 const GOALS = [
   { label: "Complete React Training",   pct: 75, color: "#3b82f6" },
@@ -17,7 +18,7 @@ function buildCalendar(year, month) {
 }
 
 export default function EmpPerformanceSummary() {
-  const today = new Date();
+  const today = getBusinessCalendarDate();
   const [calYear, setCalYear]   = useState(today.getFullYear());
   const [calMonth, setCalMonth] = useState(today.getMonth());
 

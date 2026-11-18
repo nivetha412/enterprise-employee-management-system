@@ -2,6 +2,7 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
   PieChart, Pie, Cell, Legend,
 } from "recharts";
+import { formatBusinessDate } from "../utils/businessTime";
 
 const DEPT_COLORS = ["#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#0891b2", "#0d9488", "#ea580c"];
 
@@ -62,7 +63,7 @@ export default function DashboardCharts({ attendance = [], employees = [], depar
     return Object.values(byDate)
       .sort((a, b) => a.day.localeCompare(b.day))
       .slice(-7)
-      .map(d => ({ ...d, day: new Date(d.day).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) }));
+      .map(d => ({ ...d, day: formatBusinessDate(d.day, { weekday: "short", month: "short", day: "numeric" }) }));
   })();
 
   // ── Department Distribution ────────────────────────────────────────────────

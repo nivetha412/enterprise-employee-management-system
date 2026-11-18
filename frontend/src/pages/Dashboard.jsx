@@ -6,6 +6,7 @@ import {
 import api from "../services/api";
 import MainLayout from "../layouts/MainLayout";
 import { useDomainNav } from "../context/RoleContext";
+import { formatBusinessDate } from "../utils/businessTime";
 import "./Dashboard.css";
 
 const METRICS = [
@@ -45,7 +46,7 @@ export default function Dashboard() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadDashboard(); }, [loadDashboard]);
   const values = { ...report, pendingLeaves };
-  const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  const today = formatBusinessDate(new Date(), { weekday: "long", month: "long", day: "numeric" });
 
   return <MainLayout><div className="admin-dashboard">
     <header className="admin-dashboard__header">

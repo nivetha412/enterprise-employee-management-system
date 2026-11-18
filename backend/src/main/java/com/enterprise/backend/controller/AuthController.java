@@ -4,6 +4,7 @@ import com.enterprise.backend.dto.RegisterUserDto;
 import com.enterprise.backend.dto.LoginRequestDto;
 import com.enterprise.backend.dto.LoginResponseDto;
 import com.enterprise.backend.service.AuthService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,7 +33,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDto> login(
-            @RequestBody LoginRequestDto dto) {
+            @Valid @RequestBody LoginRequestDto dto) {
 
         return ResponseEntity.ok(authService.login(dto));
     }
@@ -51,6 +52,12 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No valid role found for authenticated user");
         }
 
-        return ResponseEntity.ok(Map.of("role", role));
+        boolean mustChangePassword = "EMPLOYEE".equals(role)
+                && employeeServiceMustChangePassword(authentication.getName());
+        return ResponseEntity.ok(Map.of("role", role, "mustChangePassword", mustChangePassword));
+    }
+
+    private boolean employeeServiceMustChangePassword(String employeeCode) {
+        return authService.mustChangePassword(employeeCode);
     }
 }

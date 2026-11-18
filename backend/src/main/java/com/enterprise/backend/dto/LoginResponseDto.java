@@ -15,4 +15,6 @@ public class LoginResponseDto {
 
     private Long employeeId;
 
+    private Boolean mustChangePassword;
+
 }

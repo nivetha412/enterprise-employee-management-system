@@ -123,7 +123,7 @@ function ProfileContent() {
       window.dispatchEvent(new Event("profile-updated"));
       setEditing(false);
     } catch (error) {
-      setSaveError(error?.response?.data?.message || "Unable to save your profile. Please try again.");
+      setSaveError(error?.userMessage || "Unable to save your profile. Please try again.");
     } finally {
       setSaving(false);
     }

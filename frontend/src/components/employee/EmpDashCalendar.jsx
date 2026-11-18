@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { RiArrowLeftSLine, RiArrowRightSLine } from "react-icons/ri";
 import { useEmployee } from "../../hooks/useEmployee";
+import { getBusinessCalendarDate } from "../../utils/businessTime";
 
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const DAYS   = ["Su","Mo","Tu","We","Th","Fr","Sa"];
@@ -21,7 +22,7 @@ const STATUS_BG = {
 
 export default function EmpDashCalendar() {
   const { attendance } = useEmployee();
-  const today = new Date();
+  const today = getBusinessCalendarDate();
   const [year,  setYear]  = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
 

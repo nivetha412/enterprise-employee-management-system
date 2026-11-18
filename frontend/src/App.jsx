@@ -40,6 +40,12 @@ function RootRedirect() {
         }
 
         localStorage.setItem("role", serverRole);
+        const mustChangePassword = response?.data?.mustChangePassword === true;
+        localStorage.setItem("mustChangePassword", String(mustChangePassword));
+        if (serverRole === "EMPLOYEE" && mustChangePassword) {
+          setDestination("/employee/settings");
+          return;
+        }
         const domainMap = { ADMIN: "admin", EMPLOYEE: "employee" };
         const domain = domainMap[serverRole] || "employee";
         setDestination(`/${domain}/dashboard`);
@@ -100,12 +106,6 @@ export default function App() {
         <Route path="leave" element={
           <ProtectedRoute allowedRoles={["ADMIN"]}>
             <Leave />
-          </ProtectedRoute>
-        } />
-
-        <Route path="profile" element={
-          <ProtectedRoute allowedRoles={["ADMIN"]}>
-            <EmployeeProfile />
           </ProtectedRoute>
         } />
 

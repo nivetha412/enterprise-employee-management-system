@@ -2,8 +2,10 @@ package com.enterprise.backend.service;
 
 import com.enterprise.backend.dto.EmployeeRequestDto;
 import com.enterprise.backend.dto.EmployeeResponseDto;
+import com.enterprise.backend.dto.EmployeeProvisioningResponseDto;
 import com.enterprise.backend.dto.EmployeeSelfUpdateDto;
 import com.enterprise.backend.dto.EmployeePasswordResetDto;
+import com.enterprise.backend.dto.EmployeePasswordChangeDto;
 import com.enterprise.backend.dto.EmployeeBasicDto;
 import com.enterprise.backend.entity.Employee;
 import com.enterprise.backend.entity.EmployeeLeaveBalance;
@@ -18,10 +20,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.Authentication;
 
 import java.util.List;
+import java.security.SecureRandom;
 
 @Service
 @RequiredArgsConstructor
 public class EmployeeServiceImpl implements EmployeeService {
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final String TEMP_PASSWORD_CHARACTERS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*?";
+    private static final int TEMP_PASSWORD_LENGTH = 32;
 
     private final EmployeeRepository employeeRepository;
     private final EmployeeLeaveBalanceRepository employeeLeaveBalanceRepository;
@@ -37,15 +44,23 @@ public class EmployeeServiceImpl implements EmployeeService {
         }
         return code;
     }
+
+    private String generateTemporaryPassword() {
+        StringBuilder password = new StringBuilder(TEMP_PASSWORD_LENGTH);
+        for (int i = 0; i < TEMP_PASSWORD_LENGTH; i++) {
+            password.append(TEMP_PASSWORD_CHARACTERS.charAt(SECURE_RANDOM.nextInt(TEMP_PASSWORD_CHARACTERS.length())));
+        }
+        return password.toString();
+    }
     @Override
     public String generateNextCode() {
         return generateEmployeeCode();
     }
     @Override
     @Transactional
-    public EmployeeResponseDto createEmployee(EmployeeRequestDto dto) {
+    public EmployeeProvisioningResponseDto createEmployee(EmployeeRequestDto dto) {
         if (employeeRepository.findByEmail(dto.getEmail()).isPresent()) {
-            throw new IllegalArgumentException("Employee email already exists");
+            throw new com.enterprise.backend.exception.BusinessRuleException("Employee email already exists");
         }
         Department department = resolveDepartment(dto.getDepartment());
 
@@ -56,12 +71,13 @@ public class EmployeeServiceImpl implements EmployeeService {
         }
 
         String employeeCode = generateEmployeeCode();
+        String temporaryPassword = generateTemporaryPassword();
         Employee employee = Employee.builder()
                 .employeeCode(employeeCode)
                 .firstName(dto.getFirstName())
                 .lastName(dto.getLastName())
                 .email(dto.getEmail())
-                .passwordHash(passwordEncoder.encode(employeeCode))
+                .passwordHash(passwordEncoder.encode(temporaryPassword))
                 .phone(dto.getPhone())
                 .gender(dto.getGender())
                 .designation(dto.getDesignation())
@@ -70,6 +86,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .departmentEntity(department)
                 .employmentType(dto.getEmploymentType())
                 .active(true)
+                .mustChangePassword(true)
                 .build();
 
         Employee savedEmployee = employeeRepository.save(employee);
@@ -82,7 +99,10 @@ public class EmployeeServiceImpl implements EmployeeService {
             .wfhBalance(0)
             .build());
 
-        return toResponseDto(savedEmployee);
+        return EmployeeProvisioningResponseDto.builder()
+                .employee(toResponseDto(savedEmployee))
+                .temporaryPassword(temporaryPassword)
+                .build();
     }
 
     @Override
@@ -97,7 +117,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     public EmployeeResponseDto getEmployeeById(Long id) {
         return toResponseDto(
                 employeeRepository.findById(id)
-                        .orElseThrow(() -> new RuntimeException("Employee Not Found"))
+                        .orElseThrow(() -> new com.enterprise.backend.exception.ResourceNotFoundException("Employee was not found"))
         );
     }
 
@@ -106,11 +126,11 @@ public class EmployeeServiceImpl implements EmployeeService {
     public EmployeeResponseDto updateEmployee(Long id, EmployeeRequestDto dto) {
 
         Employee employee = employeeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee Not Found"));
+                .orElseThrow(() -> new com.enterprise.backend.exception.ResourceNotFoundException("Employee was not found"));
 
         employeeRepository.findByEmail(dto.getEmail())
                 .filter(existing -> !existing.getId().equals(id))
-                .ifPresent(existing -> { throw new IllegalArgumentException("Employee email already exists"); });
+                .ifPresent(existing -> { throw new com.enterprise.backend.exception.BusinessRuleException("Employee email already exists"); });
         Department department = resolveDepartment(dto.getDepartment());
 
         employee.setFirstName(dto.getFirstName());
@@ -129,6 +149,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         }
         if (dto.getInitialPassword() != null && !dto.getInitialPassword().isBlank()) {
             employee.setPasswordHash(passwordEncoder.encode(dto.getInitialPassword()));
+            employee.setMustChangePassword(true);
         }
 
         return toResponseDto(employeeRepository.save(employee));
@@ -138,10 +159,10 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Transactional
     public void deleteEmployee(Long id) {
         if (!employeeRepository.existsById(id)) {
-            throw new RuntimeException("Employee Not Found");
+            throw new com.enterprise.backend.exception.ResourceNotFoundException("Employee was not found");
         }
         Employee employee = employeeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee Not Found"));
+                .orElseThrow(() -> new com.enterprise.backend.exception.ResourceNotFoundException("Employee was not found"));
         employee.setActive(false);
         employeeRepository.save(employee);
     }
@@ -157,7 +178,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         Employee employee = currentEmployee(authentication);
         employeeRepository.findByEmail(dto.getEmail())
                 .filter(existing -> !existing.getId().equals(employee.getId()))
-                .ifPresent(existing -> { throw new IllegalArgumentException("Employee email already exists"); });
+                .ifPresent(existing -> { throw new com.enterprise.backend.exception.BusinessRuleException("Employee email already exists"); });
         employee.setFirstName(dto.getFirstName());
         employee.setLastName(dto.getLastName());
         employee.setEmail(dto.getEmail());
@@ -170,8 +191,24 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Transactional
     public void resetPassword(Long id, EmployeePasswordResetDto dto) {
         Employee employee = employeeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee Not Found"));
+                .orElseThrow(() -> new com.enterprise.backend.exception.ResourceNotFoundException("Employee was not found"));
         employee.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
+        employee.setMustChangePassword(true);
+        employeeRepository.save(employee);
+    }
+
+    @Override
+    @Transactional
+    public void changeMyPassword(Authentication authentication, EmployeePasswordChangeDto dto) {
+        Employee employee = currentEmployee(authentication);
+        if (!passwordEncoder.matches(dto.getCurrentPassword(), employee.getPasswordHash())) {
+            throw new com.enterprise.backend.exception.BusinessRuleException("Current password is incorrect");
+        }
+        if (dto.getNewPassword().getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72) {
+            throw new com.enterprise.backend.exception.BusinessRuleException("New password must be at most 72 UTF-8 bytes");
+        }
+        employee.setPasswordHash(passwordEncoder.encode(dto.getNewPassword()));
+        employee.setMustChangePassword(false);
         employeeRepository.save(employee);
     }
 
@@ -190,17 +227,17 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     private Employee currentEmployee(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
-            throw new IllegalArgumentException("Authenticated employee is required");
+            throw new org.springframework.security.access.AccessDeniedException("Authenticated employee is required");
         }
         String subject = authentication.getName();
         return employeeRepository.findByEmployeeCode(subject)
                 .or(() -> employeeRepository.findByEmail(subject))
-                .orElseThrow(() -> new RuntimeException("Employee Not Found"));
+                .orElseThrow(() -> new com.enterprise.backend.exception.ResourceNotFoundException("Employee was not found"));
     }
 
     private Department resolveDepartment(String departmentName) {
         return departmentRepository.findByDepartmentNameIgnoreCase(departmentName.trim())
-                .orElseThrow(() -> new IllegalArgumentException("Department does not exist"));
+                .orElseThrow(() -> new com.enterprise.backend.exception.ResourceNotFoundException("Department was not found"));
     }
 
     private EmployeeResponseDto toResponseDto(Employee e) {

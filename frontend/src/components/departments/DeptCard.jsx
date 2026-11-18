@@ -1,4 +1,5 @@
 import { RiBuilding2Line, RiEditLine, RiDeleteBinLine, RiMapPinLine, RiTeamLine, RiEyeLine, RiUserStarLine, RiCalendarLine, RiHashtag } from "react-icons/ri";
+import { formatBusinessDate } from "../../utils/businessTime";
 
 const PALETTE = [
   { accent: "#2563eb", light: "#dbeafe", mid: "#93c5fd" },
@@ -150,7 +151,7 @@ export default function DeptCard({ dept, index, deptEmployees, onView, onEdit, o
         {dept.createdDate && (
           <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#94a3b8" }}>
             <RiCalendarLine size={12} />
-            Created {new Date(dept.createdDate).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+            Created {formatBusinessDate(dept.createdDate, { year: "numeric", month: "short", day: "numeric" })}
           </div>
         )}
 

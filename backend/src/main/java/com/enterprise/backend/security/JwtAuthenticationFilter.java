@@ -20,6 +20,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -47,20 +48,30 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            boolean accountIsValid = switch (roleFromToken) {
-                case ADMIN -> userRepository.findByEmailIgnoreCase(subject)
+            Optional<Employee> employeeAccount = Optional.empty();
+            boolean accountIsValid;
+            if (roleFromToken == Role.ADMIN) {
+                accountIsValid = userRepository.findByEmailIgnoreCase(subject)
                         .filter(User::getActive)
                         .map(user -> user.getRole() == roleFromToken)
                         .orElse(false);
-                case EMPLOYEE -> employeeRepository.findByEmployeeCodeIgnoreCase(subject)
-                        .filter(Employee::getActive)
-                        .map(employee -> true)
-                        .orElse(false);
-            };
+            } else {
+                employeeAccount = employeeRepository.findByEmployeeCodeIgnoreCase(subject)
+                        .filter(Employee::getActive);
+                accountIsValid = employeeAccount.isPresent();
+            }
 
             if (!accountIsValid) {
                 SecurityContextHolder.clearContext();
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired session");
+                return;
+            }
+
+            if (roleFromToken == Role.EMPLOYEE
+                    && employeeAccount.map(employee -> Boolean.TRUE.equals(employee.getMustChangePassword())).orElse(false)
+                    && !isAllowedDuringForcedPasswordChange(request)) {
+                SecurityContextHolder.clearContext();
+                response.sendError(HttpServletResponse.SC_FORBIDDEN, "Password change is required before using this feature");
                 return;
             }
 
@@ -76,5 +87,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
         chain.doFilter(request, response);
+    }
+
+    private boolean isAllowedDuringForcedPasswordChange(HttpServletRequest request) {
+        String path = request.getServletPath();
+        String method = request.getMethod();
+        return ("/api/auth/me".equals(path) && "GET".equals(method))
+                || ("/api/employees/me/password".equals(path) && "PUT".equals(method))
+                || ("/api/employees/me".equals(path)
+                    && ("GET".equals(method) || "PUT".equals(method)));
     }
 }

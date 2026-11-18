@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import api from "../services/api";
 import MainLayout from "../layouts/MainLayout";
 import { Toast } from "../styles/ui.jsx";
+import { formatBusinessDate, getBusinessDateString } from "../utils/businessTime";
 
 import AttHeader      from "../components/attendance/AttHeader.jsx";
 import AttKPICards    from "../components/attendance/AttKPICards.jsx";
@@ -31,8 +32,8 @@ export default function Attendance() {
   // Detail drawer
   const [viewRecord, setViewRecord] = useState(null);
 
-  const today      = new Date().toISOString().slice(0, 10);
-  const todayLabel = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const today      = getBusinessDateString();
+  const todayLabel = formatBusinessDate(new Date(), { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
   const showToast = (msg, type = "success") => {
     setToast({ message: msg, type });
@@ -53,7 +54,7 @@ export default function Attendance() {
       setLeaves(leaveRes.data);
     } catch (err) {
       console.error(err);
-      showToast("Failed to load your data", "error");
+      showToast(err?.userMessage || "Unable to load your attendance data. Please try again.", "error");
     } finally {
       setLoading(false);
     }
@@ -74,7 +75,7 @@ export default function Attendance() {
       setLeaves(leaveRes.data);
     } catch (err) {
       console.error(err);
-      showToast("Failed to load attendance data", "error");
+      showToast(err?.userMessage || "Unable to load attendance data. Please try again.", "error");
     } finally {
       setLoading(false);
     }
@@ -92,7 +93,7 @@ export default function Attendance() {
       showToast("Record deleted");
     } catch (err) {
       console.error(err);
-      showToast("Failed to delete record", "error");
+      showToast(err?.userMessage || "Unable to delete this attendance record.", "error");
     }
   };
 

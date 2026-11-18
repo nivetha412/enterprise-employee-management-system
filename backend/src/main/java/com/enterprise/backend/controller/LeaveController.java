@@ -3,6 +3,8 @@ package com.enterprise.backend.controller;
 import com.enterprise.backend.dto.LeaveRequestDto;
 import com.enterprise.backend.dto.LeaveResponseDto;
 import com.enterprise.backend.service.LeaveService;
+import jakarta.validation.Valid;
+import org.springframework.validation.annotation.Validated;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -20,7 +22,7 @@ public class LeaveController {
     @PostMapping("/apply")
     @PreAuthorize("hasRole('EMPLOYEE')")
     public LeaveResponseDto applyLeave(
-            @RequestBody LeaveRequestDto dto, Authentication authentication) {
+            @Validated(LeaveRequestDto.Apply.class) @RequestBody LeaveRequestDto dto, Authentication authentication) {
 
         return leaveService.applyLeave(dto, authentication);
     }
@@ -64,7 +66,7 @@ public String deleteLeave(
 @PreAuthorize("isAuthenticated()")
 public LeaveResponseDto updateLeave(
         @PathVariable Long id,
-        @RequestBody LeaveRequestDto dto, Authentication authentication) {
+        @Valid @RequestBody LeaveRequestDto dto, Authentication authentication) {
 
     return leaveService.updateLeave(id, dto, authentication);
 }

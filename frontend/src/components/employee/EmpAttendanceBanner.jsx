@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { RiLoginBoxLine, RiLogoutBoxLine } from "react-icons/ri";
+import { formatBusinessDate, getBusinessHour } from "../../utils/businessTime";
 
 function LiveClock() {
   const [now, setNow] = useState(new Date());
@@ -9,17 +10,17 @@ function LiveClock() {
   }, []);
   return (
     <span>
-      {now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+      {formatBusinessDate(now, { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
       {" · "}
       <strong style={{ color: "#93c5fd" }}>
-        {now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+        {formatBusinessDate(now, { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
       </strong>
     </span>
   );
 }
 
 function getGreeting() {
-  const h = new Date().getHours();
+  const h = getBusinessHour();
   if (h < 12) return { text: "Good Morning", emoji: "🌅" };
   if (h < 17) return { text: "Good Afternoon", emoji: "☀️" };
   return { text: "Good Evening", emoji: "🌙" };

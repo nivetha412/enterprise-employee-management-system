@@ -2,8 +2,10 @@ package com.enterprise.backend.service;
 
 import com.enterprise.backend.dto.EmployeeRequestDto;
 import com.enterprise.backend.dto.EmployeeResponseDto;
+import com.enterprise.backend.dto.EmployeeProvisioningResponseDto;
 import com.enterprise.backend.dto.EmployeeSelfUpdateDto;
 import com.enterprise.backend.dto.EmployeePasswordResetDto;
+import com.enterprise.backend.dto.EmployeePasswordChangeDto;
 import com.enterprise.backend.dto.EmployeeBasicDto;
 import org.springframework.security.core.Authentication;
 
@@ -11,7 +13,7 @@ import java.util.List;
 
 public interface EmployeeService {
 
-    EmployeeResponseDto createEmployee(EmployeeRequestDto dto);
+    EmployeeProvisioningResponseDto createEmployee(EmployeeRequestDto dto);
 
     List<EmployeeResponseDto> getAllEmployees();
   
@@ -29,6 +31,8 @@ public interface EmployeeService {
     EmployeeResponseDto updateMyProfile(Authentication authentication, EmployeeSelfUpdateDto dto);
 
     void resetPassword(Long id, EmployeePasswordResetDto dto);
+
+    void changeMyPassword(Authentication authentication, EmployeePasswordChangeDto dto);
 
     List<EmployeeBasicDto> getLeaveBackupEmployees(Authentication authentication);
 

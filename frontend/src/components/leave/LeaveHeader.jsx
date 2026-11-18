@@ -1,7 +1,8 @@
 import { RiCalendarCheckLine, RiPulseLine, RiRefreshLine, RiDownloadLine, RiPrinterLine } from "react-icons/ri";
+import { formatBusinessDate } from "../../utils/businessTime";
 
 export default function LeaveHeader({ totalRequests, pendingCount, onRefresh, onExportCSV, onPrint }) {
-  const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const today = formatBusinessDate(new Date(), { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
   return (
     <div style={{

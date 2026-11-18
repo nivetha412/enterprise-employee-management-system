@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { RiRefreshLine } from "react-icons/ri";
+import { formatBusinessDate } from "../utils/businessTime";
 
 const TABS = [
   { key: "all",      label: "All" },
@@ -58,7 +59,7 @@ export default function RecentActivities({ attendance = [], leaves = [], employe
       iconColor: l.status === "APPROVED" ? "#10b981" : l.status === "REJECTED" ? "#ef4444" : "#f59e0b",
       title:     `${empName(l.employeeId)} — ${(l.leaveType || "").replace(/_/g, " ")}`,
       detail:    `${l.startDate} → ${l.endDate} · ${l.status}`,
-      time:      l.startDate ? new Date(l.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "",
+      time:      l.startDate ? formatBusinessDate(l.startDate, { month: "short", day: "numeric" }) : "",
       dot:       l.status === "APPROVED" ? "#10b981" : l.status === "REJECTED" ? "#ef4444" : "#f59e0b",
     }));
 

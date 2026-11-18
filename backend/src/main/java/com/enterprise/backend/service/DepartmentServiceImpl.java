@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.Clock;
 import java.util.List;
 
 @Service
@@ -18,6 +19,7 @@ public class DepartmentServiceImpl implements DepartmentService {
 
     private final DepartmentRepository departmentRepository;
     private final EmployeeRepository employeeRepository;
+    private final Clock businessClock;
 
     @Override
     public DepartmentResponseDto createDepartment(
@@ -30,7 +32,7 @@ public class DepartmentServiceImpl implements DepartmentService {
                 .managerName(dto.getManagerName())
                 .location(dto.getLocation())
                 .active(true)
-                .createdDate(LocalDate.now())
+                .createdDate(LocalDate.now(businessClock))
                 .build();
 
         Department savedDepartment =
@@ -70,7 +72,7 @@ public class DepartmentServiceImpl implements DepartmentService {
 public DepartmentResponseDto getDepartmentById(Long id) {
 
     Department department = departmentRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Department Not Found"));
+            .orElseThrow(() -> new com.enterprise.backend.exception.ResourceNotFoundException("Department was not found"));
 
     return DepartmentResponseDto.builder()
             .id(department.getId())
@@ -90,7 +92,7 @@ public DepartmentResponseDto updateDepartment(
         DepartmentRequestDto dto) {
 
     Department department = departmentRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Department Not Found"));
+            .orElseThrow(() -> new com.enterprise.backend.exception.ResourceNotFoundException("Department was not found"));
 
     department.setDepartmentCode(dto.getDepartmentCode());
     department.setDepartmentName(dto.getDepartmentName());
@@ -120,10 +122,10 @@ public DepartmentResponseDto updateDepartment(
 public void deleteDepartment(Long id) {
 
     Department department = departmentRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Department Not Found"));
+            .orElseThrow(() -> new com.enterprise.backend.exception.ResourceNotFoundException("Department was not found"));
 
     if (employeeRepository.countByDepartmentEntityId(id) > 0) {
-        throw new IllegalArgumentException("Department cannot be deleted while employees are assigned to it");
+        throw new com.enterprise.backend.exception.BusinessRuleException("Department cannot be deleted while employees are assigned to it");
     }
 
     departmentRepository.delete(department);

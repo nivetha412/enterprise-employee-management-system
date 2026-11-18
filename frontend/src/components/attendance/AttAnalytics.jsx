@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { calendarDateKey, parseBusinessDate } from "../../utils/businessTime";
 
 const card = { background: "#fff", borderRadius: 14, padding: "18px 20px", border: "1px solid #e2e8f0", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" };
 const secTitle = { fontSize: 10.5, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.09em", marginBottom: 13 };
@@ -78,12 +79,12 @@ function StackedBars({ data, height = 80 }) {
 // ── Weekly calendar strip ─────────────────────────────────────────────────────
 function WeekStrip({ attendance, today }) {
   const days = useMemo(() => {
-    const now = new Date(today);
+    const now = parseBusinessDate(today);
     const dow = now.getDay();
     const monday = new Date(now); monday.setDate(now.getDate() - ((dow + 6) % 7));
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(monday); d.setDate(monday.getDate() + i);
-      const ds = d.toISOString().slice(0, 10);
+      const ds = calendarDateKey(d);
       const recs = attendance.filter(a => String(a.attendanceDate) === ds);
       return {
         label: d.toLocaleDateString("en-US", { weekday: "short" }),
@@ -159,16 +160,16 @@ export default function AttAnalytics({ attendance, employees, departments, leave
 
   // Daily trend — last 14 days
   const dailyTrend = useMemo(() => Array.from({ length: 14 }, (_, i) => {
-    const d = new Date(today); d.setDate(d.getDate() - (13 - i));
-    const ds = d.toISOString().slice(0, 10);
+    const d = parseBusinessDate(today); d.setDate(d.getDate() - (13 - i));
+    const ds = calendarDateKey(d);
     const recs = attendance.filter(a => String(a.attendanceDate) === ds);
     return { label: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }), present: recs.filter(a => a.status === "PRESENT").length, absent: recs.filter(a => a.status === "ABSENT").length };
   }), [attendance, today]);
 
   // Monthly trend — last 6 months
   const monthlyTrend = useMemo(() => Array.from({ length: 6 }, (_, i) => {
-    const d = new Date(today); d.setMonth(d.getMonth() - (5 - i));
-    const ym = d.toISOString().slice(0, 7);
+    const d = parseBusinessDate(today); d.setMonth(d.getMonth() - (5 - i));
+    const ym = calendarDateKey(d).slice(0, 7);
     const recs = attendance.filter(a => String(a.attendanceDate).startsWith(ym));
     return { label: d.toLocaleDateString("en-US", { month: "short" }), present: recs.filter(a => a.status === "PRESENT").length, absent: recs.filter(a => a.status === "ABSENT").length };
   }), [attendance, today]);

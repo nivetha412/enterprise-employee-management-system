@@ -71,6 +71,7 @@ class AuthServiceLoginTest {
         employee.setEmployeeCode("EMP001");
         employee.setPasswordHash("$2a$10$hashed");
         employee.setActive(true);
+        employee.setMustChangePassword(true);
 
         when(employeeRepository.findByEmployeeCodeIgnoreCase("EMP001")).thenReturn(Optional.of(employee));
         when(passwordEncoder.matches("Emp001", "$2a$10$hashed")).thenReturn(true);
@@ -84,6 +85,7 @@ class AuthServiceLoginTest {
 
         assertEquals("token-employee", response.getToken());
         assertEquals("EMPLOYEE", response.getRole());
+        assertTrue(response.getMustChangePassword());
         verify(employeeRepository).findByEmployeeCodeIgnoreCase("EMP001");
     }
 }

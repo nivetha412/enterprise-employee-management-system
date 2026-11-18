@@ -350,6 +350,8 @@ function Employees() {
   const [bulkManager, setBulkManager] = useState("");
   const [showBulkDeptModal, setShowBulkDeptModal] = useState(false);
   const [showBulkManagerModal, setShowBulkManagerModal] = useState(false);
+  const [provisionedEmployee, setProvisionedEmployee] = useState(null);
+  const [credentialCopyMessage, setCredentialCopyMessage] = useState("");
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -411,7 +413,7 @@ function Employees() {
   const createEmployee = async () => {
     if (!validate()) return;
     try {
-      await api.post("/employees", {
+      const response = await api.post("/employees", {
         firstName:      form.firstName,
         lastName:       form.lastName,
         email:          form.email,
@@ -422,12 +424,13 @@ function Employees() {
         department:     form.department,
         employmentType: form.employmentType,
       });
+      setProvisionedEmployee(response.data);
+      setCredentialCopyMessage("");
       resetForm();
       fetchEmployees();
-      showToast("Employee added successfully");
     } catch (error) {
       console.error(error);
-      showToast(error.response?.data?.errors?.[0] || "Failed to add employee", "error");
+      showToast(error?.userMessage || "Unable to add this employee. Please check the details and try again.", "error");
     }
   };
 
@@ -465,7 +468,7 @@ function Employees() {
       showToast("Employee updated successfully");
     } catch (error) {
       console.error(error);
-      showToast(error.response?.data?.errors?.[0] || "Failed to update employee", "error");
+      showToast(error?.userMessage || "Unable to update this employee. Please check the details and try again.", "error");
     }
   };
 
@@ -598,6 +601,34 @@ function Employees() {
   return (
     <MainLayout>
       <Toast message={toast.message} type={toast.type} />
+
+      {provisionedEmployee && (
+        <div role="presentation" style={{ position: "fixed", inset: 0, zIndex: 1200, background: "rgba(15,23,42,0.65)", display: "grid", placeItems: "center", padding: 20 }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="temporary-password-title" style={{ width: "100%", maxWidth: 520, background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 24px 70px rgba(0,0,0,.3)" }}>
+            <h2 id="temporary-password-title" style={{ fontSize: 19, color: "#0f172a" }}>Employee created</h2>
+            <p style={{ color: "#475569", marginTop: 8 }}>Share these sign-in details with the employee using your approved secure channel. This temporary password is shown once and cannot be retrieved later.</p>
+            <dl style={{ margin: "18px 0", padding: 16, background: "#f8fafc", borderRadius: 10 }}>
+              <dt style={{ color: "#64748b", fontSize: 12 }}>Employee code</dt>
+              <dd style={{ margin: "2px 0 12px", fontWeight: 700 }}>{provisionedEmployee.employee.employeeCode}</dd>
+              <dt style={{ color: "#64748b", fontSize: 12 }}>Temporary password</dt>
+              <dd style={{ margin: "4px 0 0", fontFamily: "monospace", fontSize: 16, overflowWrap: "anywhere", userSelect: "all" }}>{provisionedEmployee.temporaryPassword}</dd>
+            </dl>
+            <p style={{ color: "#92400e", background: "#fffbeb", padding: 10, borderRadius: 8, fontSize: 13 }}>The employee must change this password before accessing other parts of the system.</p>
+            {credentialCopyMessage && <p role="status" style={{ color: "#047857", fontSize: 13 }}>{credentialCopyMessage}</p>}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 18 }}>
+              <button style={s.btnGhost} onClick={() => { setProvisionedEmployee(null); setCredentialCopyMessage(""); }}>Close and clear</button>
+              <button style={s.btnPrimary} onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(`Employee code: ${provisionedEmployee.employee.employeeCode}\nTemporary password: ${provisionedEmployee.temporaryPassword}`);
+                  setCredentialCopyMessage("Copied. Deliver the details through your approved secure channel.");
+                } catch {
+                  setCredentialCopyMessage("Clipboard access is unavailable. Select and copy the details manually.");
+                }
+              }}>Copy sign-in details</button>
+            </div>
+          </section>
+        </div>
+      )}
 
       {/* Page Header */}
       <PageHeader

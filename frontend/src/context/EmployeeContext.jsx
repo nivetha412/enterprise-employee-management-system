@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import api from "../services/api";
+import { getBusinessDateString, getPreviousBusinessDateString } from "../utils/businessTime";
 
 const EmployeeContext = createContext(null);
 
@@ -47,12 +48,12 @@ export function EmployeeProvider({ children }) {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
 
-  const now = new Date();
-  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const todayStr = getBusinessDateString();
   const monthStr    = todayStr.slice(0, 7);
+  const previousDay = getPreviousBusinessDateString(todayStr);
   const thisMonth   = attendance.filter(r => r.attendanceDate?.startsWith(monthStr));
   const todayRecord = attendance
-    .filter(r => r.attendanceDate === todayStr)
+    .filter(r => r.attendanceDate === todayStr || (r.attendanceDate === previousDay && !r.checkOutTime))
     .reduce((latest, record) => !latest || record.id > latest.id ? record : latest, null);
 
   const attStats = {

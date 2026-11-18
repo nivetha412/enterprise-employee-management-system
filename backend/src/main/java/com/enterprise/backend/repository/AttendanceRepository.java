@@ -17,6 +17,9 @@ public interface AttendanceRepository
     Optional<Attendance> findTopByEmployeeIdAndAttendanceDateAndCheckOutTimeIsNullOrderByIdDesc(
             Long employeeId, LocalDate date);
 
+    Optional<Attendance> findTopByEmployeeIdAndAttendanceDateBetweenAndCheckOutTimeIsNullOrderByAttendanceDateDescIdDesc(
+            Long employeeId, LocalDate startDate, LocalDate endDate);
+
     Optional<Attendance> findTopByEmployeeIdAndAttendanceDateOrderByIdDesc(
             Long employeeId, LocalDate date);
 }

@@ -48,8 +48,8 @@ export default function Departments() {
       setEmployees(eRes.data);
       setAttendance(aRes.data);
       setLeaves(lRes.data);
-    } catch {
-      showToast("Failed to load data", "error");
+    } catch (error) {
+      showToast(error?.userMessage || "Unable to load department data. Please try again.", "error");
     } finally {
       setLoading(false);
     }
@@ -94,8 +94,8 @@ export default function Departments() {
       }
       resetModal();
       fetchAll();
-    } catch {
-      showToast(editingId ? "Failed to update department" : "Failed to create department", "error");
+    } catch (error) {
+      showToast(error?.userMessage || (editingId ? "Unable to update this department." : "Unable to create this department."), "error");
     }
   };
 
@@ -106,8 +106,8 @@ export default function Departments() {
       fetchAll();
       showToast("Department deleted");
       if (viewDept?.id === id) setViewDept(null);
-    } catch {
-      showToast("Failed to delete department", "error");
+    } catch (error) {
+      showToast(error?.userMessage || "Unable to delete this department.", "error");
     }
   };
 

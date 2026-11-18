@@ -34,14 +34,14 @@ export default function EmpRecentActivities() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
           <div>
             <h3 style={{ fontSize: "13.5px", fontWeight: 700, color: "#0f172a" }}>Recent Activities</h3>
-            <p style={{ fontSize: "11.5px", color: "#94a3b8", marginTop: "2px" }}>Your latest actions</p>
+            <p style={{ fontSize: "11.5px", color: "#94a3b8", marginTop: "2px" }}>Sample activity for demonstration only</p>
           </div>
           <span style={{
             fontSize: "11px", fontWeight: 700, color: "#10b981",
             background: "#ecfdf5", padding: "4px 12px", borderRadius: "20px",
             border: "1px solid #6ee7b7", display: "flex", alignItems: "center", gap: "6px",
           }}>
-            <span className="pulse-dot" /> Live
+            Sample
           </span>
         </div>
         <div style={{ display: "flex", gap: "2px" }}>

@@ -1,5 +1,6 @@
 import { RiCheckboxCircleLine, RiUserUnfollowLine, RiAlarmWarningLine, RiTimeLine, RiLoginBoxLine, RiLogoutBoxLine } from "react-icons/ri";
 import { useEmployee } from "../../hooks/useEmployee";
+import { formatBusinessDate } from "../../utils/businessTime";
 
 function DonutRing({ pct }) {
   const r = 44, cx = 52, cy = 52, circ = 2 * Math.PI * r;
@@ -20,7 +21,7 @@ function DonutRing({ pct }) {
 export default function EmpDashAttCard() {
   const { attStats, todayRecord, loading } = useEmployee();
   const pct = attStats.workingDays > 0 ? Math.round((attStats.presentDays / attStats.workingDays) * 100) : 0;
-  const month = new Date().toLocaleString("en-US", { month: "long", year: "numeric" });
+  const month = formatBusinessDate(new Date(), { month: "long", year: "numeric" });
 
   const stats = [
     { icon: RiCheckboxCircleLine, label: "Present",      value: attStats.presentDays, color: "#059669", bg: "#ecfdf5" },

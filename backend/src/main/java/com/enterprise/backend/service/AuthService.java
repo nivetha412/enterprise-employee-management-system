@@ -11,6 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import com.enterprise.backend.dto.LoginRequestDto;
 import com.enterprise.backend.dto.LoginResponseDto;
 import com.enterprise.backend.security.JwtService;
+import com.enterprise.backend.exception.InvalidCredentialsException;
 
 @Service
 @RequiredArgsConstructor
@@ -23,7 +24,7 @@ public class AuthService {
 
     public void registerUser(RegisterUserDto dto) {
         if (userRepository.findByEmail(dto.getEmail()).isPresent()) {
-            throw new RuntimeException("Email already exists");
+            throw new com.enterprise.backend.exception.BusinessRuleException("Email already exists");
         }
         User user = User.builder()
                 .firstName(dto.getFirstName())
@@ -43,16 +44,16 @@ public class AuthService {
             String code = normalizeEmployeeCode(dto.getEmployeeCode());
 
             Employee employee = employeeRepository.findByEmployeeCodeIgnoreCase(code)
-                    .orElseThrow(() -> new IllegalArgumentException("Invalid employee code or password"));
+                    .orElseThrow(InvalidCredentialsException::new);
 
             if (!Boolean.TRUE.equals(employee.getActive())) {
-                throw new IllegalArgumentException("This employee account is inactive. Please contact HR.");
+                throw new InvalidCredentialsException();
             }
 
             if (dto.getPassword() == null || dto.getPassword().isBlank()
                     || employee.getPasswordHash() == null
                     || !passwordEncoder.matches(dto.getPassword(), employee.getPasswordHash())) {
-                throw new IllegalArgumentException("Invalid employee code or password");
+                throw new InvalidCredentialsException();
             }
 
             String token = jwtService.generateToken(employee.getEmployeeCode(), com.enterprise.backend.enums.Role.EMPLOYEE);
@@ -61,25 +62,26 @@ public class AuthService {
                     token,
                     employee.getEmployeeCode(),
                     "EMPLOYEE",
-                    employee.getId()
+                    employee.getId(),
+                    Boolean.TRUE.equals(employee.getMustChangePassword())
             );
         }
 
         // ── ADMIN login: authenticate via User table (email + password) ─
         if (dto.getEmail() == null || dto.getEmail().isBlank()) {
-            throw new RuntimeException("Email is required");
+            throw new com.enterprise.backend.exception.InvalidCredentialsException();
         }
 
         String email = normalizeEmail(dto.getEmail());
         User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
+                .orElseThrow(InvalidCredentialsException::new);
 
         if (!Boolean.TRUE.equals(user.getActive())) {
-            throw new IllegalArgumentException("This admin account is inactive. Please contact support.");
+            throw new InvalidCredentialsException();
         }
 
         if (dto.getPassword() == null || dto.getPassword().isBlank() || !passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("Invalid password");
+            throw new InvalidCredentialsException();
         }
 
         String token = jwtService.generateToken(user.getEmail(), user.getRole());
@@ -92,8 +94,15 @@ public class AuthService {
                 token,
                 user.getEmail(),
                 user.getRole().name(),
-                employeeId
+                employeeId,
+                false
         );
+    }
+
+    public boolean mustChangePassword(String employeeCode) {
+        return employeeRepository.findByEmployeeCodeIgnoreCase(employeeCode)
+                .map(employee -> Boolean.TRUE.equals(employee.getMustChangePassword()))
+                .orElse(false);
     }
 
     private String normalizeEmail(String email) {

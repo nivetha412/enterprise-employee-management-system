@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { RiLoginBoxLine, RiLogoutBoxLine, RiTimeLine, RiMapPinLine } from "react-icons/ri";
+import { formatBusinessDate } from "../../utils/businessTime";
 
 function LiveTimer({ startTime }) {
   const [elapsed, setElapsed] = useState("00:00:00");
@@ -82,7 +83,7 @@ export default function EmpAttendanceToday({ record }) {
         <div>
           <h3 style={{ fontSize: "13.5px", fontWeight: 700, color: "#0f172a" }}>Today's Attendance</h3>
           <p style={{ fontSize: "11.5px", color: "#94a3b8", marginTop: "2px" }}>
-            {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+            {formatBusinessDate(new Date(), { weekday: "long", month: "long", day: "numeric" })}
           </p>
         </div>
         <span style={{

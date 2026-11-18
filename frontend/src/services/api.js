@@ -21,11 +21,18 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error.response?.status;
+    const payload = error.response?.data;
+    const validationError = Array.isArray(payload?.errors)
+      ? payload.errors[0]
+      : null;
+    const serverMessage = typeof payload === "string" ? payload : payload?.message;
     error.userMessage = status === 403 ? "You do not have permission to perform this action."
       : status === 404 ? "The requested resource was not found."
       : status >= 500 ? "The server could not complete the request. Please try again later."
       : !error.response ? "Unable to reach the server. Check your connection and try again."
-      : error.response?.data?.message;
+      : status === 400 ? validationError || serverMessage || "Please check the information you entered."
+      : status === 401 ? serverMessage || "Your login details could not be verified."
+      : serverMessage || "The request could not be completed.";
     if (status === 401) {
       const isLoginRequest = error.config?.url?.includes("/auth/login");
       if (!isLoginRequest) {

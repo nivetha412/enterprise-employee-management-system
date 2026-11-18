@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.Clock;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 @Service
@@ -17,37 +19,50 @@ import java.util.List;
 public class AttendanceServiceImpl implements AttendanceService {
 
     private final AttendanceRepository attendanceRepository;
+    private final Clock businessClock;
 
     @Override
     public AttendanceResponseDto checkIn(AttendanceRequestDto dto) {
-        attendanceRepository.findTopByEmployeeIdAndAttendanceDateOrderByIdDesc(dto.getEmployeeId(), LocalDate.now())
+        ZonedDateTime now = ZonedDateTime.now(businessClock);
+        LocalDate today = now.toLocalDate();
+        LocalTime checkInTime = now.toLocalTime();
+        attendanceRepository.findTopByEmployeeIdAndAttendanceDateOrderByIdDesc(dto.getEmployeeId(), today)
                 .ifPresent(record -> {
-                    throw new RuntimeException(record.getCheckOutTime() == null
+                    throw new com.enterprise.backend.exception.AttendanceConflictException(record.getCheckOutTime() == null
                             ? "You are already checked in for today"
                             : "Today's attendance has already been completed");
                 });
+        attendanceRepository.findTopByEmployeeIdAndAttendanceDateAndCheckOutTimeIsNullOrderByIdDesc(
+                dto.getEmployeeId(), today.minusDays(1))
+                .ifPresent(record -> {
+                    throw new com.enterprise.backend.exception.AttendanceConflictException(
+                            "Please check out your previous workday before checking in again");
+                });
         Attendance attendance = Attendance.builder()
                 .employeeId(dto.getEmployeeId())
-                .attendanceDate(LocalDate.now())
-                .checkInTime(LocalTime.now())
+                .attendanceDate(today)
+                .checkInTime(checkInTime)
                 .status("PRESENT")
-                .lateArrival(LocalTime.now().isAfter(LocalTime.of(9, 0)))
+                .lateArrival(checkInTime.isAfter(LocalTime.of(9, 0)))
                 .build();
         return mapToDto(attendanceRepository.save(attendance));
     }
 
     @Override
     public AttendanceResponseDto checkOut(AttendanceRequestDto dto) {
-        // Find today's most recent check-in for this employee
+        ZonedDateTime now = ZonedDateTime.now(businessClock);
+        LocalDate today = now.toLocalDate();
+        LocalTime checkOutTime = now.toLocalTime();
+        // Keep an overnight shift attached to its check-in date, including a checkout after midnight.
         Attendance attendance = attendanceRepository
-                .findTopByEmployeeIdAndAttendanceDateAndCheckOutTimeIsNullOrderByIdDesc(
-                        dto.getEmployeeId(), LocalDate.now())
-                .orElseThrow(() -> new RuntimeException("No open check-in record found for today"));
+                .findTopByEmployeeIdAndAttendanceDateBetweenAndCheckOutTimeIsNullOrderByAttendanceDateDescIdDesc(
+                        dto.getEmployeeId(), today.minusDays(1), today)
+                .orElseThrow(() -> new com.enterprise.backend.exception.AttendanceNotOpenException("No open check-in record found for today"));
 
-        attendance.setCheckOutTime(LocalTime.now());
-        double workingHours = Duration.between(
-                attendance.getCheckInTime(),
-                attendance.getCheckOutTime()).toMinutes() / 60.0;
+        attendance.setCheckOutTime(checkOutTime);
+        Duration duration = Duration.between(attendance.getCheckInTime(), checkOutTime);
+        if (checkOutTime.isBefore(attendance.getCheckInTime())) duration = duration.plusDays(1);
+        double workingHours = duration.toMinutes() / 60.0;
         attendance.setWorkingHours(workingHours);
         return mapToDto(attendanceRepository.save(attendance));
     }
@@ -65,7 +80,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     @Override
     public void deleteAttendance(Long id) {
         Attendance attendance = attendanceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Attendance Not Found"));
+                .orElseThrow(() -> new com.enterprise.backend.exception.ResourceNotFoundException("Attendance record was not found"));
         attendanceRepository.delete(attendance);
     }
 
