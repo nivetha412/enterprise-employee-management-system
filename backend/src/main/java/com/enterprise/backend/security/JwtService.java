@@ -26,9 +26,14 @@ public class JwtService {
     }
 
     public String generateToken(String subject, Role role) {
+        return generateToken(subject, role, 0L);
+    }
+
+    public String generateToken(String subject, Role role, long tokenVersion) {
         return Jwts.builder()
                 .subject(subject)
                 .claim("role", role.name())
+                .claim("tokenVersion", tokenVersion)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + 86400000))
                 .signWith(
@@ -51,6 +56,19 @@ public class JwtService {
                 .parseSignedClaims(token)
                 .getPayload()
                 .getSubject();
+    }
+
+    public long extractTokenVersion(String token) {
+        Object version = Jwts.parser()
+                .verifyWith(io.jsonwebtoken.security.Keys.hmacShaKeyFor(secretKey))
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .get("tokenVersion");
+
+        if (version == null) return 0L;
+        if (version instanceof Number number) return number.longValue();
+        throw new IllegalArgumentException("Invalid token version");
     }
 
     public Role extractRole(String token) {

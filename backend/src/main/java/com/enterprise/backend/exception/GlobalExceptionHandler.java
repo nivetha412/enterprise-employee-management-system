@@ -39,6 +39,17 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 
+    @ExceptionHandler(LoginRateLimitException.class)
+    public ResponseEntity<Map<String, Object>> handleLoginRateLimit(LoginRateLimitException ex) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", LocalDateTime.now().toString());
+        body.put("status", HttpStatus.TOO_MANY_REQUESTS.value());
+        body.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", Integer.toString(ex.getRetryAfterSeconds()))
+                .body(body);
+    }
+
     @ExceptionHandler(AttendanceNotOpenException.class)
     public ResponseEntity<Map<String, Object>> handleAttendanceNotOpen(AttendanceNotOpenException ex) {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());

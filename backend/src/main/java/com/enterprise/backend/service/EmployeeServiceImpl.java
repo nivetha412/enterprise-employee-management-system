@@ -150,6 +150,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         if (dto.getInitialPassword() != null && !dto.getInitialPassword().isBlank()) {
             employee.setPasswordHash(passwordEncoder.encode(dto.getInitialPassword()));
             employee.setMustChangePassword(true);
+            employee.setTokenVersion(nextTokenVersion(employee.getTokenVersion()));
         }
 
         return toResponseDto(employeeRepository.save(employee));
@@ -194,6 +195,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .orElseThrow(() -> new com.enterprise.backend.exception.ResourceNotFoundException("Employee was not found"));
         employee.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
         employee.setMustChangePassword(true);
+        employee.setTokenVersion(nextTokenVersion(employee.getTokenVersion()));
         employeeRepository.save(employee);
     }
 
@@ -209,6 +211,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         }
         employee.setPasswordHash(passwordEncoder.encode(dto.getNewPassword()));
         employee.setMustChangePassword(false);
+        employee.setTokenVersion(nextTokenVersion(employee.getTokenVersion()));
         employeeRepository.save(employee);
     }
 
@@ -238,6 +241,10 @@ public class EmployeeServiceImpl implements EmployeeService {
     private Department resolveDepartment(String departmentName) {
         return departmentRepository.findByDepartmentNameIgnoreCase(departmentName.trim())
                 .orElseThrow(() -> new com.enterprise.backend.exception.ResourceNotFoundException("Department was not found"));
+    }
+
+    private long nextTokenVersion(Long currentVersion) {
+        return currentVersion == null ? 1L : currentVersion + 1L;
     }
 
     private EmployeeResponseDto toResponseDto(Employee e) {

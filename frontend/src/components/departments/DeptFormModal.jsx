@@ -127,6 +127,12 @@ export default function DeptFormModal({ open, editingId, form, errors, onChange,
           </div>
         </div>
 
+          {isEdit && (
+            <label style={{ display: "flex", alignItems: "center", gap: 9, margin: "0 24px 16px", color: "#334155", fontSize: 13, fontWeight: 600 }}>
+              <input type="checkbox" checked={form.active !== false} onChange={e => onChange("active", e.target.checked)} />
+              Department is active
+            </label>
+          )}
         {/* Footer */}
         <div style={{ padding: "16px 24px 22px", borderTop: "1px solid #f1f5f9", display: "flex", gap: 10, justifyContent: "flex-end" }}>
           <button onClick={onCancel} style={s.btnGhost}

@@ -36,4 +36,8 @@ public class User {
     @Column(nullable = false)
     @Builder.Default
      private Boolean active = true;
+
+    @Column(name = "token_version", nullable = false)
+    @Builder.Default
+    private Long tokenVersion = 0L;
 }

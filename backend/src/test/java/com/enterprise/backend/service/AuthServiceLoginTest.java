@@ -1,6 +1,10 @@
 package com.enterprise.backend.service;
 
 import com.enterprise.backend.dto.LoginRequestDto;
+import com.enterprise.backend.dto.EmployeePasswordChangeDto;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import java.util.List;
 import com.enterprise.backend.entity.Employee;
 import com.enterprise.backend.entity.User;
 import com.enterprise.backend.enums.Role;
@@ -34,11 +38,14 @@ class AuthServiceLoginTest {
     @Mock
     private JwtService jwtService;
 
+    @Mock
+    private LoginAttemptService loginAttemptService;
+
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userRepository, passwordEncoder, jwtService, employeeRepository);
+        authService = new AuthService(userRepository, passwordEncoder, jwtService, employeeRepository, loginAttemptService);
     }
 
     @Test
@@ -51,7 +58,7 @@ class AuthServiceLoginTest {
 
         when(userRepository.findByEmailIgnoreCase("admin@enterprise.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("Admin@123", "$2a$10$hashed")).thenReturn(true);
-        when(jwtService.generateToken("admin@enterprise.com", Role.ADMIN)).thenReturn("token-admin");
+        when(jwtService.generateToken("admin@enterprise.com", Role.ADMIN, 0L)).thenReturn("token-admin");
 
         var dto = new LoginRequestDto();
         dto.setEmail("ADMIN@Enterprise.com");
@@ -75,7 +82,7 @@ class AuthServiceLoginTest {
 
         when(employeeRepository.findByEmployeeCodeIgnoreCase("EMP001")).thenReturn(Optional.of(employee));
         when(passwordEncoder.matches("Emp001", "$2a$10$hashed")).thenReturn(true);
-        when(jwtService.generateToken("EMP001", Role.EMPLOYEE)).thenReturn("token-employee");
+        when(jwtService.generateToken("EMP001", Role.EMPLOYEE, 0L)).thenReturn("token-employee");
 
         var dto = new LoginRequestDto();
         dto.setEmployeeCode("emp001");
@@ -88,4 +95,27 @@ class AuthServiceLoginTest {
         assertTrue(response.getMustChangePassword());
         verify(employeeRepository).findByEmployeeCodeIgnoreCase("EMP001");
     }
+    @Test
+    void adminCanChangePasswordAfterVerifyingCurrentPassword() {
+        User user = new User();
+        user.setEmail("admin@enterprise.com");
+        user.setPassword("$2a$10$oldhash");
+        user.setRole(Role.ADMIN);
+        user.setActive(true);
+        when(userRepository.findByEmailIgnoreCase("admin@enterprise.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("OldPass", "$2a$10$oldhash")).thenReturn(true);
+        when(passwordEncoder.encode("A much stronger new password")).thenReturn("$2a$10$newhash");
+        var authentication = new UsernamePasswordAuthenticationToken("admin@enterprise.com", null,
+                List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
+        var dto = new EmployeePasswordChangeDto();
+        dto.setCurrentPassword("OldPass");
+        dto.setNewPassword("A much stronger new password");
+
+        authService.changeAdminPassword(authentication, dto);
+
+        assertEquals("$2a$10$newhash", user.getPassword());
+        assertEquals(1L, user.getTokenVersion());
+        verify(userRepository).save(user);
+    }
+
 }

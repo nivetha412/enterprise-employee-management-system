@@ -42,12 +42,12 @@ export default function Attendance() {
 
   async function initEmployee() {
     try {
-      const empId = localStorage.getItem("employeeId");
+      const empRes = await api.get("/employees/me");
+      const empId = empRes.data?.id;
       if (!empId) { showToast("Employee profile not linked", "error"); setLoading(false); return; }
-      const [empRes, attRes, leaveRes] = await Promise.all([
-        api.get(`/employees/${empId}`),
+      const [attRes, leaveRes] = await Promise.all([
         api.get(`/attendance/employee/${empId}`),
-        api.get("/leave"),
+        api.get("/leave/mine"),
       ]);
       setMyProfile(empRes.data);
       setAttendance(attRes.data);
@@ -99,7 +99,7 @@ export default function Attendance() {
 
   const empList = isEmployee && myProfile ? [myProfile] : employees;
 
-  // ── Export CSV ──────────────────────────────────────────────────────────────
+  // Export CSV
   const handleExportCSV = () => {
     const rows = [
       ["Employee Code", "Employee Name", "Department", "Date", "Check In", "Check Out", "Working Hours", "Overtime", "Status", "Late Arrival"],
@@ -128,10 +128,10 @@ export default function Attendance() {
     a.click(); URL.revokeObjectURL(url);
   };
 
-  // ── Print ───────────────────────────────────────────────────────────────────
+  // Print
   const handlePrint = () => window.print();
 
-  // ── KPI — today-scoped ──────────────────────────────────────────────────────
+  // KPI - today scoped
   const todayRecords = attendance.filter(a => String(a.attendanceDate) === today);
   const presentToday = todayRecords.filter(a => a.status === "PRESENT").length;
   const absentToday  = todayRecords.filter(a => a.status === "ABSENT").length;
@@ -155,7 +155,7 @@ export default function Attendance() {
     rate:    attRate,
   };
 
-  // ── Filtered records ────────────────────────────────────────────────────────
+  // Filtered records
   // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const filtered = useMemo(() => {
     const base = isEmployee && myProfile

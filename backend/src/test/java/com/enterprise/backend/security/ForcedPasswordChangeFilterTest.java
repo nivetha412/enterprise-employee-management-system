@@ -5,6 +5,7 @@ import com.enterprise.backend.enums.Role;
 import com.enterprise.backend.repository.EmployeeRepository;
 import com.enterprise.backend.repository.UserRepository;
 import jakarta.servlet.FilterChain;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,6 +26,25 @@ class ForcedPasswordChangeFilterTest {
     @Mock private EmployeeRepository employeeRepository;
     @Mock private FilterChain chain;
 
+    @Test
+    void rejectsTokenWhenAccountVersionHasAdvanced() throws Exception {
+        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(jwtService, userRepository, employeeRepository);
+        Employee employee = Employee.builder().employeeCode("EMP001").active(true).tokenVersion(3L).build();
+        when(jwtService.extractEmail("token")).thenReturn("EMP001");
+        when(jwtService.extractRole("token")).thenReturn(Role.EMPLOYEE);
+        when(jwtService.extractTokenVersion("token")).thenReturn(2L);
+        when(employeeRepository.findByEmployeeCodeIgnoreCase("EMP001")).thenReturn(Optional.of(employee));
+
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/auth/me");
+        request.setServletPath("/api/auth/me");
+        request.setCookies(new Cookie("EMS_ACCESS", "token"));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, chain);
+
+        assertEquals(401, response.getStatus());
+        verify(chain, never()).doFilter(any(), any());
+    }
     @AfterEach
     void clearSecurityContext() {
         org.springframework.security.core.context.SecurityContextHolder.clearContext();

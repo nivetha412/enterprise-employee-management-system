@@ -52,4 +52,8 @@ private Boolean active;
 @Column(name = "must_change_password", nullable = false)
 @Builder.Default
 private Boolean mustChangePassword = false;
+
+@Column(name = "token_version", nullable = false)
+@Builder.Default
+private Long tokenVersion = 0L;
 }

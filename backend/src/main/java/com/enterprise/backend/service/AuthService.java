@@ -12,6 +12,9 @@ import com.enterprise.backend.dto.LoginRequestDto;
 import com.enterprise.backend.dto.LoginResponseDto;
 import com.enterprise.backend.security.JwtService;
 import com.enterprise.backend.exception.InvalidCredentialsException;
+import com.enterprise.backend.dto.EmployeePasswordChangeDto;
+import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +24,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final EmployeeRepository employeeRepository;
+    private final LoginAttemptService loginAttemptService;
 
     public void registerUser(RegisterUserDto dto) {
         if (userRepository.findByEmail(dto.getEmail()).isPresent()) {
@@ -38,6 +42,24 @@ public class AuthService {
     }
 
     public LoginResponseDto login(LoginRequestDto dto) {
+        return login(dto, "unknown");
+    }
+
+    public LoginResponseDto login(LoginRequestDto dto, String remoteAddress) {
+        String identifier = dto.getEmployeeCode() != null && !dto.getEmployeeCode().isBlank()
+                ? normalizeEmployeeCode(dto.getEmployeeCode()) : normalizeEmail(dto.getEmail());
+        loginAttemptService.assertAllowed(remoteAddress, identifier);
+        try {
+            LoginResponseDto response = authenticate(dto);
+            loginAttemptService.recordSuccess(remoteAddress, identifier);
+            return response;
+        } catch (InvalidCredentialsException exception) {
+            loginAttemptService.recordFailure(remoteAddress, identifier);
+            throw exception;
+        }
+    }
+
+    private LoginResponseDto authenticate(LoginRequestDto dto) {
 
         // ── EMPLOYEE login: authenticate directly via employeeCode ──────────
         if (dto.getEmployeeCode() != null && !dto.getEmployeeCode().isBlank()) {
@@ -56,7 +78,7 @@ public class AuthService {
                 throw new InvalidCredentialsException();
             }
 
-            String token = jwtService.generateToken(employee.getEmployeeCode(), com.enterprise.backend.enums.Role.EMPLOYEE);
+            String token = jwtService.generateToken(employee.getEmployeeCode(), com.enterprise.backend.enums.Role.EMPLOYEE, tokenVersion(employee.getTokenVersion()));
 
             return new LoginResponseDto(
                     token,
@@ -84,7 +106,7 @@ public class AuthService {
             throw new InvalidCredentialsException();
         }
 
-        String token = jwtService.generateToken(user.getEmail(), user.getRole());
+        String token = jwtService.generateToken(user.getEmail(), user.getRole(), tokenVersion(user.getTokenVersion()));
 
         Long employeeId = employeeRepository.findByEmail(user.getEmail())
                 .map(Employee::getId)
@@ -99,10 +121,31 @@ public class AuthService {
         );
     }
 
+    @Transactional
+    public void changeAdminPassword(Authentication authentication, EmployeePasswordChangeDto dto) {
+        User user = userRepository.findByEmailIgnoreCase(authentication.getName())
+                .orElseThrow(InvalidCredentialsException::new);
+        if (user.getRole() != com.enterprise.backend.enums.Role.ADMIN
+                || !Boolean.TRUE.equals(user.getActive())
+                || !passwordEncoder.matches(dto.getCurrentPassword(), user.getPassword())) {
+            throw new InvalidCredentialsException();
+        }
+        if (dto.getNewPassword().getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72) {
+            throw new com.enterprise.backend.exception.BusinessRuleException("New password must be at most 72 UTF-8 bytes");
+        }
+        user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
+        user.setTokenVersion(tokenVersion(user.getTokenVersion()) + 1L);
+        userRepository.save(user);
+    }
+
     public boolean mustChangePassword(String employeeCode) {
         return employeeRepository.findByEmployeeCodeIgnoreCase(employeeCode)
                 .map(employee -> Boolean.TRUE.equals(employee.getMustChangePassword()))
                 .orElse(false);
+    }
+
+    private long tokenVersion(Long version) {
+        return version == null ? 0L : version;
     }
 
     private String normalizeEmail(String email) {

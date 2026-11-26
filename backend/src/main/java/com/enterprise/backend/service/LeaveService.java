@@ -130,7 +130,7 @@ public LeaveResponseDto updateLeave(
 
     LeaveRequest leave =
             leaveRequestRepository
-                    .findById(id)
+                    .findByIdForUpdate(id)
                     .orElseThrow(() ->
                             new com.enterprise.backend.exception.ResourceNotFoundException("Leave request was not found"));
 
@@ -191,7 +191,7 @@ public void deleteLeave(Long id, Authentication authentication) {
 
     LeaveRequest leave =
             leaveRequestRepository
-                    .findById(id)
+                    .findByIdForUpdate(id)
                     .orElseThrow(() ->
                             new com.enterprise.backend.exception.ResourceNotFoundException("Leave request was not found"));
 
@@ -247,9 +247,20 @@ public void deleteLeave(Long id, Authentication authentication) {
         }
     }
 
+    private EmployeeLeaveBalance lockBalance(Long employeeId) {
+        List<EmployeeLeaveBalance> balances = employeeLeaveBalanceRepository.lockAllByEmployeeId(employeeId);
+        if (balances.isEmpty()) {
+            throw new com.enterprise.backend.exception.BusinessRuleException("Leave balance is not available for this employee");
+        }
+        if (balances.size() > 1) {
+            throw new com.enterprise.backend.exception.BusinessRuleException(
+                    "Multiple leave balance records require data reconciliation before this operation");
+        }
+        return balances.get(0);
+    }
+
     private void deductLeaveBalance(LeaveRequest leave) {
-        EmployeeLeaveBalance balance = employeeLeaveBalanceRepository.findFirstByEmployeeId(leave.getEmployeeId())
-                .orElseThrow(() -> new com.enterprise.backend.exception.BusinessRuleException("Leave balance is not available for this employee"));
+        EmployeeLeaveBalance balance = lockBalance(leave.getEmployeeId());
         int days = leave.getTotalDays();
         Integer remaining;
         switch (leave.getLeaveType()) {
@@ -284,8 +295,7 @@ public void deleteLeave(Long id, Authentication authentication) {
     }
 
     private void restoreLeaveBalance(LeaveRequest leave) {
-        EmployeeLeaveBalance balance = employeeLeaveBalanceRepository.findFirstByEmployeeId(leave.getEmployeeId())
-                .orElseThrow(() -> new com.enterprise.backend.exception.BusinessRuleException("Leave balance is not available for this employee"));
+        EmployeeLeaveBalance balance = lockBalance(leave.getEmployeeId());
         int days = leave.getTotalDays();
         switch (leave.getLeaveType()) {
             case CASUAL_LEAVE -> balance.setCasualLeaveBalance((balance.getCasualLeaveBalance() == null ? 0 : balance.getCasualLeaveBalance()) + days);

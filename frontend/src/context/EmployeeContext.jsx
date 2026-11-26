@@ -13,9 +13,8 @@ export function EmployeeProvider({ children }) {
   const [error,      setError]      = useState(null);
 
   const load = useCallback(async () => {
-    const token = localStorage.getItem("token");
     const role  = localStorage.getItem("role");
-    if (!token || role !== "EMPLOYEE") { setLoading(false); return; }
+    if (role !== "EMPLOYEE") { setLoading(false); return; }
 
     setLoading(true);
     setError(null);

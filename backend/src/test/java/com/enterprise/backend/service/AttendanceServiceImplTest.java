@@ -3,6 +3,8 @@ package com.enterprise.backend.service;
 import com.enterprise.backend.dto.AttendanceRequestDto;
 import com.enterprise.backend.entity.Attendance;
 import com.enterprise.backend.repository.AttendanceRepository;
+import com.enterprise.backend.repository.EmployeeRepository;
+import com.enterprise.backend.entity.Employee;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -27,12 +29,16 @@ class AttendanceServiceImplTest {
     @Mock
     private AttendanceRepository attendanceRepository;
 
+    @Mock
+    private EmployeeRepository employeeRepository;
+
     @Test
     void checkInUsesBusinessDateJustBeforeMidnight() {
         Clock clock = Clock.fixed(Instant.parse("2026-01-01T18:29:30Z"), BUSINESS_ZONE);
-        AttendanceServiceImpl service = new AttendanceServiceImpl(attendanceRepository, clock);
+        AttendanceServiceImpl service = new AttendanceServiceImpl(attendanceRepository, employeeRepository, clock);
         AttendanceRequestDto request = new AttendanceRequestDto();
         request.setEmployeeId(12L);
+        when(employeeRepository.lockById(12L)).thenReturn(Optional.of(Employee.builder().id(12L).build()));
         when(attendanceRepository.findTopByEmployeeIdAndAttendanceDateOrderByIdDesc(12L, LocalDate.of(2026, 1, 1)))
                 .thenReturn(Optional.empty());
         when(attendanceRepository.save(any(Attendance.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -42,14 +48,16 @@ class AttendanceServiceImplTest {
         assertEquals(LocalDate.of(2026, 1, 1), saved.getAttendanceDate());
         assertEquals(LocalTime.of(23, 59, 30), saved.getCheckInTime());
         verify(attendanceRepository).save(any(Attendance.class));
+        verify(employeeRepository).lockById(12L);
     }
 
     @Test
     void checkOutAfterMidnightClosesPreviousBusinessDateRecord() {
         Clock clock = Clock.fixed(Instant.parse("2026-01-01T18:37:00Z"), BUSINESS_ZONE);
-        AttendanceServiceImpl service = new AttendanceServiceImpl(attendanceRepository, clock);
+        AttendanceServiceImpl service = new AttendanceServiceImpl(attendanceRepository, employeeRepository, clock);
         AttendanceRequestDto request = new AttendanceRequestDto();
         request.setEmployeeId(12L);
+        when(employeeRepository.lockById(12L)).thenReturn(Optional.of(Employee.builder().id(12L).build()));
         Attendance openRecord = Attendance.builder()
                 .id(4L)
                 .employeeId(12L)
@@ -69,5 +77,6 @@ class AttendanceServiceImplTest {
         assertEquals(LocalTime.of(0, 7), saved.getCheckOutTime());
         assertEquals(0.15, saved.getWorkingHours());
         verify(attendanceRepository).save(openRecord);
+        verify(employeeRepository).lockById(12L);
     }
 }

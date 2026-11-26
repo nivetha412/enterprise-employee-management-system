@@ -17,7 +17,7 @@ public class DashboardReportDto {
 
     private Long presentToday;
 
-    private Long absentToday;
+    private Long recordedAbsentToday;
 
     private Long lateToday;
 

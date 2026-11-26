@@ -30,17 +30,36 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final EmployeeRepository employeeRepository;
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getServletPath();
+        return "/api/auth/login".equals(path)
+                || "/api/auth/csrf".equals(path)
+                || "/api/auth/logout".equals(path);
+    }
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String header = request.getHeader("Authorization");
-        if (header == null || !header.startsWith("Bearer ")) {
+        String token = null;
+        if (header != null && header.startsWith("Bearer ")) {
+            token = header.substring(7);
+        } else if (request.getCookies() != null) {
+            for (var cookie : request.getCookies()) {
+                if ("EMS_ACCESS".equals(cookie.getName())) {
+                    token = cookie.getValue();
+                    break;
+                }
+            }
+        }
+        if (token == null || token.isBlank()) {
             chain.doFilter(request, response);
             return;
         }
         try {
-            String token = header.substring(7);
             String subject = jwtService.extractEmail(token);
             Role roleFromToken = jwtService.extractRole(token);
+            long tokenVersion = jwtService.extractTokenVersion(token);
 
             if (roleFromToken == null) {
                 SecurityContextHolder.clearContext();
@@ -53,11 +72,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (roleFromToken == Role.ADMIN) {
                 accountIsValid = userRepository.findByEmailIgnoreCase(subject)
                         .filter(User::getActive)
-                        .map(user -> user.getRole() == roleFromToken)
+                        .filter(user -> user.getRole() == roleFromToken)
+                        .filter(user -> tokenVersionMatches(user.getTokenVersion(), tokenVersion))
+                        .map(user -> true)
                         .orElse(false);
             } else {
                 employeeAccount = employeeRepository.findByEmployeeCodeIgnoreCase(subject)
-                        .filter(Employee::getActive);
+                        .filter(Employee::getActive)
+                        .filter(employee -> tokenVersionMatches(employee.getTokenVersion(), tokenVersion));
                 accountIsValid = employeeAccount.isPresent();
             }
 
@@ -87,6 +109,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
         chain.doFilter(request, response);
+    }
+
+    private boolean tokenVersionMatches(Long accountVersion, long tokenVersion) {
+        return (accountVersion == null ? 0L : accountVersion) == tokenVersion;
     }
 
     private boolean isAllowedDuringForcedPasswordChange(HttpServletRequest request) {

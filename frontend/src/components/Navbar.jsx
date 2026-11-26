@@ -6,6 +6,7 @@ import {
   RiCheckLine,
 } from "react-icons/ri";
 import { useRole, ROLE_TO_DOMAIN, DOMAIN_TO_ROLE } from "../context/RoleContext";
+import api, { ensureCsrfToken } from "../services/api";
 
 const ROLES = ["ADMIN", "EMPLOYEE"];
 
@@ -53,17 +54,27 @@ export default function Navbar({ onSidebarToggle }) {
     setShowRole(false);
   }, [location.pathname]);
 
-  const logout = () => {
-    localStorage.clear();
-    window.location.href = "/";
+  const logout = async () => {
+    try {
+      await ensureCsrfToken();
+      await api.post("/auth/logout");
+    } finally {
+      localStorage.clear();
+      window.location.href = "/";
+    }
   };
 
   // Switching role requires a fresh login
-  const switchRole = (newRole) => {
+  const switchRole = async (newRole) => {
     setShowRole(false);
     if (newRole === role) return;
-    localStorage.clear();
-    navigate(`/?role=${newRole.toLowerCase()}`, { replace: true });
+    try {
+      await ensureCsrfToken();
+      await api.post("/auth/logout");
+    } finally {
+      localStorage.clear();
+      navigate(`/?role=${newRole.toLowerCase()}`, { replace: true });
+    }
   };
 
   const openAccountPage = (page) => {

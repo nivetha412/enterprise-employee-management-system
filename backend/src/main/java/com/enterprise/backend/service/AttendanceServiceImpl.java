@@ -3,9 +3,12 @@ package com.enterprise.backend.service;
 import com.enterprise.backend.dto.AttendanceRequestDto;
 import com.enterprise.backend.dto.AttendanceResponseDto;
 import com.enterprise.backend.entity.Attendance;
+import com.enterprise.backend.repository.EmployeeRepository;
+import com.enterprise.backend.exception.ResourceNotFoundException;
 import com.enterprise.backend.repository.AttendanceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -19,10 +22,14 @@ import java.util.List;
 public class AttendanceServiceImpl implements AttendanceService {
 
     private final AttendanceRepository attendanceRepository;
+    private final EmployeeRepository employeeRepository;
     private final Clock businessClock;
 
     @Override
+    @Transactional
     public AttendanceResponseDto checkIn(AttendanceRequestDto dto) {
+        employeeRepository.lockById(dto.getEmployeeId())
+                .orElseThrow(() -> new ResourceNotFoundException("Employee was not found"));
         ZonedDateTime now = ZonedDateTime.now(businessClock);
         LocalDate today = now.toLocalDate();
         LocalTime checkInTime = now.toLocalTime();
@@ -49,7 +56,10 @@ public class AttendanceServiceImpl implements AttendanceService {
     }
 
     @Override
+    @Transactional
     public AttendanceResponseDto checkOut(AttendanceRequestDto dto) {
+        employeeRepository.lockById(dto.getEmployeeId())
+                .orElseThrow(() -> new ResourceNotFoundException("Employee was not found"));
         ZonedDateTime now = ZonedDateTime.now(businessClock);
         LocalDate today = now.toLocalDate();
         LocalTime checkOutTime = now.toLocalTime();

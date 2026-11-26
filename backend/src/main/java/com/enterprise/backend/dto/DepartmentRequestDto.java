@@ -14,4 +14,6 @@ public class DepartmentRequestDto {
     private String managerName;
 
     private String location;
+
+    private Boolean active;
 }

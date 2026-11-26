@@ -5,13 +5,23 @@ const defaultBaseUrl = import.meta.env.DEV ? "/api" : `${window.location.origin}
 
 const api = axios.create({
   baseURL: configuredBaseUrl || defaultBaseUrl,
+  withCredentials: true,
+  withXSRFToken: false,
 });
 
+let csrfToken = null;
+
+export async function ensureCsrfToken() {
+  if (!csrfToken) {
+    const response = await api.get("/auth/csrf");
+    csrfToken = response.data?.token || null;
+  }
+  return csrfToken;
+}
+
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  const isLoginRequest = config.url?.includes("/auth/login");
-  if (token && !isLoginRequest) {
-    config.headers.Authorization = `Bearer ${token}`;
+  if (csrfToken && !["get", "head", "options"].includes((config.method || "get").toLowerCase())) {
+    config.headers["X-XSRF-TOKEN"] = csrfToken;
   }
   return config;
 });
@@ -22,9 +32,7 @@ api.interceptors.response.use(
   (error) => {
     const status = error.response?.status;
     const payload = error.response?.data;
-    const validationError = Array.isArray(payload?.errors)
-      ? payload.errors[0]
-      : null;
+    const validationError = Array.isArray(payload?.errors) ? payload.errors[0] : null;
     const serverMessage = typeof payload === "string" ? payload : payload?.message;
     error.userMessage = status === 403 ? "You do not have permission to perform this action."
       : status === 404 ? "The requested resource was not found."
@@ -35,9 +43,11 @@ api.interceptors.response.use(
       : serverMessage || "The request could not be completed.";
     if (status === 401) {
       const isLoginRequest = error.config?.url?.includes("/auth/login");
+      const isSessionCheck = error.config?.url?.includes("/auth/me");
       if (!isLoginRequest) {
+        csrfToken = null;
         localStorage.clear();
-        window.location.href = "/";
+        if (!isSessionCheck) window.location.href = "/";
       }
     }
     return Promise.reject(error);

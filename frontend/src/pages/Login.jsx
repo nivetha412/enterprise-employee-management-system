@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import api from "../services/api";
+import api, { ensureCsrfToken } from "../services/api";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ROLE_TO_DOMAIN } from "../context/RoleContext";
 import { RiShieldUserLine, RiUserLine, RiEyeLine, RiEyeOffLine } from "react-icons/ri";
@@ -39,9 +39,9 @@ function Login() {
 
   // If already authenticated, redirect to correct dashboard immediately
   useEffect(() => {
-    const token = localStorage.getItem("token");
     const role  = localStorage.getItem("role");
-    if (token && role) {
+    if (role) {
+      api.get("/auth/me").catch(() => {});
       const domainMap = { ADMIN: "admin", EMPLOYEE: "employee" };
       const domain = domainMap[role] || "employee";
       navigate(role === "EMPLOYEE" && localStorage.getItem("mustChangePassword") === "true"
@@ -87,11 +87,13 @@ function Login() {
         payload = { email: email.trim().toLowerCase(), password };
       }
 
+      await ensureCsrfToken();
       const response = await api.post("/auth/login", payload);
       const data = response.data;
 
       // Verify the returned role matches the selected tab
       if (String(data.role).toUpperCase() !== activeTab) {
+        await api.post("/auth/logout");
         setError(`This account does not have ${tab.label} access. Please use the correct role tab.`);
         setLoading(false);
         return;
@@ -99,7 +101,6 @@ function Login() {
 
       // Clear any previous session before storing new one
       localStorage.clear();
-      localStorage.setItem("token",      data.token);
       localStorage.setItem("email",      data.email);
       localStorage.setItem("role",       String(data.role).toUpperCase());
       localStorage.setItem("mustChangePassword", String(data.mustChangePassword === true));

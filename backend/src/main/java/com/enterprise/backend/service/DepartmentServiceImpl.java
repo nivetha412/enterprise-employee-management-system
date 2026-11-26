@@ -99,6 +99,9 @@ public DepartmentResponseDto updateDepartment(
     department.setDescription(dto.getDescription());
     department.setManagerName(dto.getManagerName());
     department.setLocation(dto.getLocation());
+    if (dto.getActive() != null) {
+        department.setActive(dto.getActive());
+    }
 
     Department updatedDepartment =
             departmentRepository.save(department);

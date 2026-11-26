@@ -77,6 +77,19 @@ class FlywayV2BootstrapMigrationTest {
             assertEquals(1, indexCount(statement, "leave_requests", "idx_leave_requests_employee_status"));
             assertEquals(1, indexCount(statement, "leave_requests", "idx_leave_requests_backup_employee"));
             assertEquals(1, indexCount(statement, "employee_leave_balance", "idx_employee_leave_balance_employee"));
+            assertEquals(1, columnCount(statement, "users", "token_version"));
+            assertEquals(1, columnCount(statement, "employees", "token_version"));
+        }
+    }
+
+    private int columnCount(Statement statement, String table, String column) throws Exception {
+        String query = "SELECT COUNT(*) FROM information_schema.columns "
+                + "WHERE table_schema = DATABASE() "
+                + "AND table_name = '" + table + "' "
+                + "AND column_name = '" + column + "'";
+        try (ResultSet result = statement.executeQuery(query)) {
+            assertTrue(result.next());
+            return result.getInt(1);
         }
     }
 

@@ -6,8 +6,7 @@ export default function NotFound() {
 
   const goHome = () => {
     const role   = localStorage.getItem("role");
-    const token  = localStorage.getItem("token");
-    if (token && role) {
+    if (role) {
       const domain = ROLE_TO_DOMAIN[role] || "employee";
       navigate(`/${domain}/dashboard`, { replace: true });
     } else {

@@ -5,6 +5,7 @@ import {
   RiUserLine, RiSettings3Line,
 } from "react-icons/ri";
 import { ROLE_TO_DOMAIN, DOMAIN_TO_ROLE } from "../context/RoleContext";
+import api, { ensureCsrfToken } from "../services/api";
 
 const NAV_ITEMS = {
   ADMIN: [
@@ -32,9 +33,14 @@ export default function Sidebar({ collapsed }) {
   const domain      = ROLE_TO_DOMAIN[role] || "employee";
   const items       = NAV_ITEMS[role] || NAV_ITEMS["EMPLOYEE"];
 
-  const logout = () => {
-    localStorage.clear();
-    window.location.href = "/";
+  const logout = async () => {
+    try {
+      await ensureCsrfToken();
+      await api.post("/auth/logout");
+    } finally {
+      localStorage.clear();
+      window.location.href = "/";
+    }
   };
 
   const w = collapsed ? "var(--sidebar-collapsed)" : "var(--sidebar-width)";

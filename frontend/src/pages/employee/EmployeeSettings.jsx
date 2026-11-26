@@ -6,6 +6,7 @@ import MainLayout from "../../layouts/MainLayout";
 export default function EmployeeSettings() {
   const navigate = useNavigate();
   const isEmployee = localStorage.getItem("role") === "EMPLOYEE";
+  const canChangePassword = isEmployee || localStorage.getItem("role") === "ADMIN";
   const mustChangePassword = localStorage.getItem("mustChangePassword") === "true";
   const [form, setForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
   const [busy, setBusy] = useState(false);
@@ -23,10 +24,15 @@ export default function EmployeeSettings() {
 
     setBusy(true);
     try {
-      await api.put("/employees/me/password", {
+      await api.put(isEmployee ? "/employees/me/password" : "/auth/me/password", {
         currentPassword: form.currentPassword,
         newPassword: form.newPassword,
       });
+      const loginPayload = isEmployee
+        ? { employeeCode: localStorage.getItem("email"), password: form.newPassword }
+        : { email: localStorage.getItem("email"), password: form.newPassword };
+      const loginResponse = await api.post("/auth/login", loginPayload);
+      localStorage.setItem("mustChangePassword", String(loginResponse.data.mustChangePassword === true));
       setForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
       localStorage.setItem("mustChangePassword", "false");
       if (mustChangePassword) {
@@ -45,7 +51,7 @@ export default function EmployeeSettings() {
     <MainLayout>
       <section style={{ maxWidth: 620, background: "#fff", borderRadius: 16, padding: 28, border: "1px solid #e2e8f0" }}>
         <h1 style={{ fontSize: 20 }}>Account settings</h1>
-        {isEmployee ? (
+        {canChangePassword ? (
           <>
             <p style={{ color: "#64748b", marginTop: 8, marginBottom: 20 }}>
               {mustChangePassword

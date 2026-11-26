@@ -8,6 +8,16 @@ Set `BUSINESS_TIME_ZONE` and `VITE_BUSINESS_TIME_ZONE` to the same IANA timezone
 
 Never commit these values. `.env.example` contains placeholders only.
 
+## Production transport security and recovery
+
+Activate the `prod` Spring profile. Production startup now requires `AUTH_COOKIE_SECURE=true`, exact HTTPS-only `CORS_ALLOWED_ORIGINS`, and a MySQL `DB_URL` with `sslMode=VERIFY_IDENTITY` (for example, append `?sslMode=VERIFY_IDENTITY` or `&sslMode=VERIFY_IDENTITY`). Install the database CA in the JVM trust store and verify the database hostname matches its certificate. Do not weaken certificate verification to make a connection succeed. `JWT_SECRET` must be a secret-manager value with at least 32 random bytes. Set the frontend build-time `VITE_API_BASE_URL` to the HTTPS API origin.
+
+Authentication JWTs are issued only in the `EMS_ACCESS` HttpOnly cookie; browser requests use credentialed CORS and a CSRF token obtained from `GET /api/auth/csrf`, then send it in `X-XSRF-TOKEN` for state-changing calls. Keep the frontend and API on HTTPS. If they are cross-site, the production cookie uses `SameSite=None; Secure`; allow only the exact frontend origins in CORS. Do not expose JWTs in page storage, URLs, logs, or client-visible response fields.
+
+Terminate public HTTPS at an approved load balancer or reverse proxy, redirect HTTP to HTTPS there, and keep the backend private so clients cannot bypass that proxy. Because the login limiter keys requests by `HttpServletRequest.getRemoteAddr()`, configure the proxy to discard incoming `Forwarded`/`X-Forwarded-*` values and set its own trusted client address; allow backend access only from that proxy. Confirm the forwarded-header trust configuration matches the actual proxy network. The application emits HSTS; verify the production response includes it over HTTPS.
+
+Before each production migration or release, take an encrypted, access-controlled database backup and record its completion and retention. Restore that backup into a separate isolated database, verify schema/migration state and representative employee, attendance, leave-request, and leave-balance counts, then record a successful application-level read check. Never rehearse restoration against the production database. Confirm recovery time and recovery point targets with the infrastructure owner. The application cannot verify the provider's TLS, HTTPS ingress, secret manager, backup schedule, or restore drill from source code.
+
 ## First production Admin account
 
 The application does not provide public Admin signup. `POST /api/auth/register` is available only to an authenticated Admin, so it cannot be used to create the first Admin account. Provision that account through a controlled, one-time database initialization before exposing the application:
@@ -43,3 +53,21 @@ Migration V9 adds `employees.must_change_password` with a false default for exis
 ## SPA routing
 
 The frontend uses BrowserRouter. Configure the web host to serve `index.html` for unknown non-API paths, while proxying `/api/*` to the backend. This is required for direct visits and refreshes on `/admin/*` and `/employee/*` URLs.
+
+## Leave-balance uniqueness preflight
+
+Before applying V12, back up the database and run this read-only query to identify employees with more than one balance row:
+
+```sql
+SELECT employee_id, COUNT(*) AS row_count,
+       SUM(casual_leave_balance) AS casual_total,
+       SUM(sick_leave_balance) AS sick_total,
+       SUM(earned_leave_balance) AS earned_total,
+       SUM(comp_off_balance) AS comp_off_total,
+       SUM(wfh_balance) AS wfh_total
+FROM employee_leave_balance
+GROUP BY employee_id
+HAVING COUNT(*) > 1;
+```
+
+Do not delete or merge duplicates automatically. Have HR and the database owner reconcile each result against the authoritative leave ledger and document the approved balance before making any data correction. V12 only adds a unique constraint; if duplicates remain, MySQL rejects the migration and preserves the existing rows. Re-run the preflight and then retry the migration after the separately approved reconciliation.

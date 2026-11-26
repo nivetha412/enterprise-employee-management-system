@@ -5,7 +5,7 @@ import { DOMAIN_TO_ROLE, ROLE_TO_DOMAIN } from "../context/RoleContext";
 
 /**
  * Guards a route by:
- * 1. Requiring a valid backend session for the current token
+ * 1. Requiring a valid backend session from the HttpOnly authentication cookie
  * 2. Ensuring the URL domain segment matches the server-returned role
  * 3. Ensuring the returned role is in allowedRoles
  */
@@ -15,14 +15,6 @@ export default function ProtectedRoute({ children, allowedRoles }) {
   const location = useLocation();
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setRole(null);
-      setLoading(false);
-      return;
-    }
-
     let ignore = false;
 
     api.get("/auth/me")
@@ -57,7 +49,7 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     return <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", color: "#475569" }}>Loading…</div>;
   }
 
-  if (!localStorage.getItem("token") || !role) {
+  if (!role) {
     return <Navigate to="/" replace state={{ from: location }} />;
   }
 

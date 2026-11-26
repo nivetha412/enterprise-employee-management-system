@@ -46,7 +46,7 @@ public class ReportService {
                 .filter(a -> "PRESENT".equals(a.getStatus()))
                 .count();
 
-        long absentToday = todayAttendance.stream()
+        long recordedAbsentToday = todayAttendance.stream()
                 .filter(a -> "ABSENT".equals(a.getStatus()))
                 .count();
 
@@ -60,7 +60,7 @@ public class ReportService {
                 .inactiveEmployees(inactiveEmployees)
                 .totalDepartments(totalDepartments)
                 .presentToday(presentToday)
-                .absentToday(absentToday)
+                .recordedAbsentToday(recordedAbsentToday)
                 .lateToday(lateToday)
                 .build();
     }

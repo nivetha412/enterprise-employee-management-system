@@ -10,7 +10,7 @@ import DeptSidePanel  from "../components/departments/DeptSidePanel";
 import DeptFormModal  from "../components/departments/DeptFormModal";
 import DeptViewModal  from "../components/departments/DeptViewModal";
 
-const EMPTY_FORM = { departmentName: "", departmentCode: "", description: "", managerName: "", location: "" };
+const EMPTY_FORM = { departmentName: "", departmentCode: "", description: "", managerName: "", location: "", active: true };
 
 export default function Departments() {
   const [departments, setDepartments] = useState([]);
@@ -123,6 +123,7 @@ export default function Departments() {
       description:    dept.description    || "",
       managerName:    dept.managerName    || "",
       location:       dept.location       || "",
+      active:         dept.active !== false,
     });
     setFormErrors({});
     setModalOpen(true);

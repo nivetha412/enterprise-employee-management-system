@@ -1,20 +1,21 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import api               from "./services/api";
-import Login             from "./pages/Login";
-import NotFound          from "./pages/NotFound";
-import Dashboard         from "./pages/Dashboard";
-import Employees         from "./pages/Employees";
-import Departments       from "./pages/Departments";
-import Attendance        from "./pages/Attendance";
-import Leave             from "./pages/Leave";
-import EmployeeDashboard  from "./pages/employee/EmployeeDashboard";
-import EmployeeAttendance from "./pages/employee/EmployeeAttendance";
-import EmployeeLeave      from "./pages/employee/EmployeeLeave";
-import EmployeeProfile    from "./pages/employee/EmployeeProfile";
-import EmployeeSettings   from "./pages/employee/EmployeeSettings";
 import ProtectedRoute     from "./components/ProtectedRoute";
+
+const Login = lazy(() => import("./pages/Login"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Employees = lazy(() => import("./pages/Employees"));
+const Departments = lazy(() => import("./pages/Departments"));
+const Attendance = lazy(() => import("./pages/Attendance"));
+const Leave = lazy(() => import("./pages/Leave"));
+const EmployeeDashboard = lazy(() => import("./pages/employee/EmployeeDashboard"));
+const EmployeeAttendance = lazy(() => import("./pages/employee/EmployeeAttendance"));
+const EmployeeLeave = lazy(() => import("./pages/employee/EmployeeLeave"));
+const EmployeeProfile = lazy(() => import("./pages/employee/EmployeeProfile"));
+const EmployeeSettings = lazy(() => import("./pages/employee/EmployeeSettings"));
 
 // ── Redirect helpers ──────────────────────────────────────────────────────────
 
@@ -23,13 +24,6 @@ function RootRedirect() {
   const [destination, setDestination] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setDestination("login");
-      return;
-    }
-
     api.get("/auth/me")
       .then((response) => {
         const serverRole = String(response?.data?.role || "").toUpperCase();
@@ -70,6 +64,7 @@ function DomainRoot({ domain }) {
 
 export default function App() {
   return (
+    <Suspense fallback={<div style={{ minHeight: "100vh", display: "grid", placeItems: "center", color: "#475569" }}>Loading page…</div>}>
     <Routes>
 
       {/* ── Public ── */}
@@ -161,5 +156,6 @@ export default function App() {
       <Route path="*" element={<NotFound />} />
 
     </Routes>
+    </Suspense>
   );
 }

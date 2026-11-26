@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,5 +52,19 @@ class DepartmentServiceImplTest {
         departmentService.updateDepartment(7L, request);
 
         verify(employeeRepository).updateLegacyDepartmentNameByDepartmentEntityId(7L, "Product Engineering");
+    }
+    @Test
+    void updatesDepartmentActiveStatusWhenProvided() {
+        Department department = Department.builder().id(8L).departmentName("Operations").active(true).build();
+        DepartmentRequestDto request = new DepartmentRequestDto();
+        request.setDepartmentName("Operations");
+        request.setActive(false);
+        when(departmentRepository.findById(8L)).thenReturn(Optional.of(department));
+        when(departmentRepository.save(department)).thenReturn(department);
+
+        departmentService.updateDepartment(8L, request);
+
+        assertFalse(department.getActive());
+        verify(departmentRepository).save(department);
     }
 }
