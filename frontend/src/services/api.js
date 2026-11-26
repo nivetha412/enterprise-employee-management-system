@@ -10,25 +10,41 @@ const api = axios.create({
 });
 
 let csrfToken = null;
+let csrfTokenRequest = null;
 
 export async function ensureCsrfToken() {
-  if (!csrfToken) {
-    const response = await api.get("/auth/csrf");
-    csrfToken = response.data?.token || null;
+  if (csrfToken) return csrfToken;
+  if (!csrfTokenRequest) {
+    csrfTokenRequest = api.get("/auth/csrf")
+      .then((response) => {
+        csrfToken = response.data?.token || null;
+        return csrfToken;
+      })
+      .finally(() => {
+        csrfTokenRequest = null;
+      });
   }
-  return csrfToken;
+  return csrfTokenRequest;
 }
 
-api.interceptors.request.use((config) => {
-  if (csrfToken && !["get", "head", "options"].includes((config.method || "get").toLowerCase())) {
-    config.headers["X-XSRF-TOKEN"] = csrfToken;
+api.interceptors.request.use(async (config) => {
+  if (!["get", "head", "options"].includes((config.method || "get").toLowerCase())) {
+    const token = csrfToken || await ensureCsrfToken();
+    if (token) {
+      config.headers["X-XSRF-TOKEN"] = token;
+    }
   }
   return config;
 });
 
 // Auto-logout on 401 (expired / invalid token)
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (response.config?.url?.includes("/auth/me")) {
+      ensureCsrfToken().catch(() => {});
+    }
+    return response;
+  },
   (error) => {
     const status = error.response?.status;
     const payload = error.response?.data;

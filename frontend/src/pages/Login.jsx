@@ -116,7 +116,7 @@ function Login() {
         ? "/employee/settings"
         : `/${domain}/dashboard`, { replace: true });
     } catch (err) {
-      console.error(err);
+      console.error("Login request failed", { status: err?.response?.status ?? "network_error" });
       const responseData = err?.response?.data;
       const status = err?.response?.status;
       let msg;

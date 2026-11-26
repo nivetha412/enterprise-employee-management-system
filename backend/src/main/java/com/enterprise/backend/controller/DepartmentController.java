@@ -5,6 +5,7 @@ import com.enterprise.backend.dto.DepartmentResponseDto;
 import com.enterprise.backend.service.DepartmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
@@ -19,7 +20,7 @@ public class DepartmentController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public DepartmentResponseDto createDepartment(
-            @RequestBody DepartmentRequestDto dto) {
+            @Valid @RequestBody DepartmentRequestDto dto) {
 
         return departmentService.createDepartment(dto);
     }
@@ -42,7 +43,7 @@ public class DepartmentController {
 @PreAuthorize("hasRole('ADMIN')")
 public DepartmentResponseDto updateDepartment(
         @PathVariable Long id,
-        @RequestBody DepartmentRequestDto dto) {
+        @Valid @RequestBody DepartmentRequestDto dto) {
 
     return departmentService.updateDepartment(id, dto);
 }

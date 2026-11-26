@@ -34,7 +34,7 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<String> registerUser(
-            @RequestBody RegisterUserDto dto) {
+            @Valid @RequestBody RegisterUserDto dto) {
 
         authService.registerUser(dto);
 

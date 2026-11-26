@@ -16,4 +16,4 @@ Java, Spring Boot, Spring Security, React.js, MySQL, JWT
 2. Create a MySQL database named <name>
 3. Set your DB username/password in application.properties
 4. Backend: mvn spring-boot:run
-5. Frontend: npm install, then npm start
+5. Frontend: npm install, then npm run dev

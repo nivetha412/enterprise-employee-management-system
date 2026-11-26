@@ -33,7 +33,7 @@ The application does not provide public Admin signup. `POST /api/auth/register` 
    ```
 
 4. Confirm exactly one row was created and that the hash is BCrypt encoded; do not select, log, or share the stored hash. Start the application and verify that the account can sign in and `/api/auth/me` reports `ADMIN`.
-5. Deliver the initial password to the Admin through an approved secure channel and remove temporary SQL files and local copies. The application currently has no password-change endpoint, so rotate this password by generating a new BCrypt hash and updating that Admin's `users.password` through the same audited database process when rotation is required.
+5. Deliver the initial password to the Admin through an approved secure channel and remove temporary SQL files and local copies. An Admin can change a password while signed in from the Admin settings page, which uses `PUT /api/auth/me/password`. If the account cannot sign in, use the organization's audited account-recovery process or the same controlled database procedure to reset it.
 
 Do not enable anonymous registration or add a public Admin bootstrap endpoint. If an Admin already exists, use the authenticated Admin-only registration flow or the organization's audited account-recovery process instead of running this initialization again.
 
